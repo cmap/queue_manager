@@ -90,6 +90,7 @@ if __name__ == "__main__":
     cursor = conn.cursor()
     cursor.execute("insert into queue_type (id,name) values (?, ?)",
         (default_queue_type_id, default_queue_type_name))
+    conn.commit()
     cursor.close()
 
     unittest.main()
