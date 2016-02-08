@@ -3,6 +3,7 @@ import sqlite3
 
 
 creation_script_path = "../database/update001_create_initial.sql"
+insert_initial_prism_values_script_path = "../database/prism_espresso_update002_insert_initial_values.sql"
 
 
 def build(connection_string):
@@ -15,3 +16,11 @@ def build(connection_string):
     conn.commit()
 
     return conn
+
+
+def insert_initial_prism_values(conn):
+    f = open(insert_initial_prism_values_script_path)
+    insert_script = f.read().strip()
+    f.close()
+
+    conn.executescript(insert_script)
