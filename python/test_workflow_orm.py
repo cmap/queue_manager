@@ -102,6 +102,41 @@ class TestWorkflowOrm(unittest.TestCase):
         conn.rollback()
         cursor.close()
 
+    def test__build_from_cursor_query(self):
+        cursor = [range(6)]
+        r = wo._build_from_cursor_query(cursor)
+        assert r is not None
+        logger.debug("r:  {}".format(r))
+        assert len(r) == 1, len(r)
+        r = r[0]
+        assert r.id == 0, r.id
+        assert r.plate_id == 1, r.plate_id
+        assert r.prev_queue_type_id == 2, r.prev_queue_type_id
+        assert r.prev_queue_type_name == 3, r.prev_queue_type_name
+        assert r.next_queue_type_id == 4, r.next_queue_type_id
+        assert r.next_queue_type_name == 5, r.next_queue_type_name
+
+    def test_get_by_plate_id(self):
+        cursor = conn.cursor()
+        my_wo = wo.WorkflowOrm(plate_id=1, prev_queue_type_id=2,
+            next_queue_type_id=3)
+        my_wo.create(cursor)
+        my_wo = wo.WorkflowOrm(plate_id=1, prev_queue_type_id=3,
+            next_queue_type_id=5)
+        my_wo.create(cursor)
+
+        cursor.execute("select count(*) from workflow where plate_id=1")
+        r = [x for (x,) in cursor][0]
+        logger.debug("count of prepared workflow entries r:  {}".format(r))
+        assert r == 2, r
+
+        r = wo.get_by_plate_id(cursor, 1)
+        assert r is not None
+        logger.debug("r:  {}".format(r))
+        assert len(r) == 2, len(r)
+
+        conn.rollback()
+        cursor.close()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
