@@ -33,12 +33,22 @@ class WorkflowTemplateOrm(object):
 def get_by_id(cursor, workflow_template_id):
     query = base_query + " where wt.id = ?"
     cursor.execute(query, (workflow_template_id,))
-    return _build_from_cursor_query(cursor)
+    r = _build_from_cursor_query(cursor)
+    assert len(r) == 1, len(r)
+    return r[0]
 
 
 def get_all(cursor):
     cursor.execute(base_query)
     return _build_from_cursor_query(cursor)
+
+
+def get_by_name(cursor, workflow_template_name):
+    query = base_query + " where wt.name = ?"
+    cursor.execute(query, (workflow_template_name,))
+    r = _build_from_cursor_query(cursor)
+    assert len(r) == 1, len(r)
+    return r[0]
 
 
 def _build_from_cursor_query(cursor):

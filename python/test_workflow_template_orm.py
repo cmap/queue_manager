@@ -56,8 +56,6 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
         r = wto.get_by_id(cursor, test_id)
         assert r is not None
         logger.debug("r:  {}".format(r))
-        assert len(r) == 1, len(r)
-        r = r[0]
         assert r.id == test_id, r.id
         assert r.name is not None
         assert len(r.queue_type_pairs) > 0
@@ -67,6 +65,8 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
         assert qtp[0].name is not None
         assert qtp[1].id is not None
         assert qtp[1].name is not None
+
+        cursor.close()
 
     def test_get_all(self):
         cursor = conn.cursor()
@@ -78,6 +78,22 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
         assert r is not None
         logger.debug("r:  {}".format(r))
         assert len(r) == expected_count, len(r)
+
+        cursor.close()
+
+    def test_get_by_name(self):
+        cursor = conn.cursor()
+        cursor.execute("select id from workflow_template where name = 'L1000 espresso'")
+        expected_id = [x for (x,) in cursor][0]
+        logger.debug("expected_id:  {}".format(expected_id))
+
+        r = wto.get_by_name(cursor, "L1000 espresso")
+        assert r is not None
+        logger.debug("r:  {}".format(r))
+        assert r.id == expected_id, r.id
+
+        cursor.close()
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
