@@ -25,8 +25,8 @@ def build_parser():
         help="name of workflow template to use when creating workflows",
         type=str, default=None)
     parser.add_argument("-plate_ids", "-pids",
-        help="create workflows for the specified plates using the workflow template based on the -workflow_template_name option",
-        type=str, nargs="+", default=None)
+        help="carry out the specified action for these plates", type=str,
+        nargs="+", default=None)
     parser.add_argument("-dont_commit", help="don't commit any database changes",
         type=str, default=False)
     return parser
@@ -71,11 +71,21 @@ def read_config(queue_manager_config_file):
     return cp
 
 
+def validate_args(args):
+    if args.action == "create":
+        if args.workflow_template_name is None or args.plate_ids is None:
+            logger.warning("for action create must provie workflow_template_name and plate_ids.  workflow_tempalte_name:  {}  plate_ids:  {}".format(args.workflow_template_name, args.plate_ids))
+            return False
+
+    return True
+
+
 if __name__ == "__main__":
-	args = build_parser().parse_args(sys.argv[1:])
+    args = build_parser().parse_args(sys.argv[1:])
 
-	setup_logger.setup(verbose=args.verbose)
+    setup_logger.setup(verbose=args.verbose)
 
-	logger.debug("args:  {}".format(args))
+    logger.debug("args:  {}".format(args))
 
-	main(args)
+    if validate_args(args):
+        main(args)

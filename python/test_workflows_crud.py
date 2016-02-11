@@ -39,6 +39,23 @@ class TestWorkflowsCrud(unittest.TestCase):
 
         cursor.close()
 
+    def test_validate_args(self):
+        string_args = ["create", "-plate_ids", "2"]
+        args = wc.build_parser().parse_args(string_args)
+        r = wc.validate_args(args)
+        assert r == False
+
+        string_args[1] = "-wtn"
+        logger.debug("string_args:  {}".format(string_args))
+        args = wc.build_parser().parse_args(string_args)
+        r = wc.validate_args(args)
+        assert r == False
+
+        string_args.extend(["-plate_ids", "3"])
+        logger.debug("string_args:  {}".format(string_args))
+        args = wc.build_parser().parse_args(string_args)
+        r = wc.validate_args(args)
+        assert r == True
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
