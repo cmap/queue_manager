@@ -72,10 +72,10 @@ def read_config(queue_manager_config_file):
 
 
 if __name__ == "__main__":
-	args = build_parser().parse_args(sys.argv[1:])
+    args = build_parser().parse_args(sys.argv[1:])
 
-	setup_logger.setup(verbose=args.verbose)
+    setup_logger.setup(verbose=args.verbose)
 
-	logger.debug("args:  {}".format(args))
+    logger.debug("args:  {}".format(args))
 
-	main(args)
+    main(args)
