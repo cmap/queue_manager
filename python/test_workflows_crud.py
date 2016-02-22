@@ -61,7 +61,7 @@ if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
     conn = build_database.build(":memory:")
-    build_database.insert_initial_prism_values(conn)
+    build_database.insert_initial_espresso_prism_values(conn)
     conn.commit()
 
     unittest.main()

@@ -24,7 +24,7 @@ class TestBuildDatabase(unittest.TestCase):
         conn.close()
 
     def test_script_methods(self):
-        methods = [build_database.insert_initial_prism_values,
+        methods = [build_database.insert_initial_espresso_prism_values,
             build_database.insert_initial_psp_values]
 
         for m in methods:

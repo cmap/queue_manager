@@ -3,7 +3,7 @@ import sqlite3
 
 
 creation_script_path = "../database/update001_create_initial.sql"
-insert_initial_prism_values_script_path = "../database/prism_espresso_update002_insert_initial_values.sql"
+insert_initial_espresso_prism_values_script_path = "../database/prism_espresso_update002_insert_initial_values.sql"
 insert_initial_psp_values_script_path = "../database/psp_update002_insert_initial_values.sql"
 
 
@@ -27,8 +27,8 @@ def _apply_script(script_path, conn):
     conn.executescript(script)
 
 
-def insert_initial_prism_values(conn):
-    _apply_script(insert_initial_prism_values_script_path, conn)
+def insert_initial_espresso_prism_values(conn):
+    _apply_script(insert_initial_espresso_prism_values_script_path, conn)
 
 
 def insert_initial_psp_values(conn):
