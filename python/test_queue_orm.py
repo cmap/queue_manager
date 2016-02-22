@@ -81,6 +81,9 @@ class TestQueueOrm(unittest.TestCase):
     def test_get_by_plate_id_queue_type_id(self):
         cursor = conn.cursor()
 
+        r = qo.get_by_plate_id_queue_type_id(cursor, "fake plate id", default_queue_type_id)
+        assert r is None, r
+        
         plate_id_db_id_map = {}
         N = 3
         for plate_id in range(11, 11+N):
@@ -90,8 +93,6 @@ class TestQueueOrm(unittest.TestCase):
 
         for (plate_id, db_id) in plate_id_db_id_map.items():
             r = qo.get_by_plate_id_queue_type_id(cursor, plate_id, default_queue_type_id)
-            assert len(r) == 1, len(r)
-            r = r[0]
             logger.debug("r:  {}".format(r))
             assert r.id == db_id, r.id
 

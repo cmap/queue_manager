@@ -63,4 +63,9 @@ where plate_id = ? and q.queue_type_id = ?""", (plate_id, queue_type_id))
     r = [QueueOrm(id=x[0], plate_id=x[1], datetime_added=x[2], queue_type_id=x[3],
         queue_type_name=x[4]) for x in cursor]
 
-    return r
+    if len(r) == 1:
+        return r[0]
+    elif len(r) == 0:
+        return None
+    else:
+        raise Exception("queue_orm get_by_plate_id_queue_type_id based on unique constraint in database, expected only 1 or 0 items, found len(r):  {}".format(len(r)))
