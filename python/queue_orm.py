@@ -7,13 +7,16 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 class QueueOrm(object):
     def __init__(self, id=None, plate_id=None, datetime_added=None,
-        queue_type_id=None, queue_type_name=None):
+        queue_type_id=None, queue_type_name=None, priority=None,
+        is_being_processed=None):
 
         self.id = id
         self.plate_id = plate_id
         self.datetime_added = datetime_added
         self.queue_type_id = queue_type_id
         self.queue_type_name = queue_type_name
+        self.priority = priority
+        self.is_being_processed = is_being_processed
 
     def delete(self, cursor):
         if self.id is not None:
@@ -24,8 +27,24 @@ class QueueOrm(object):
 
     def create(self, cursor):
         if self.plate_id is not None and self.queue_type_id is not None:
-            cursor.execute("insert into queue (plate_id, queue_type_id) values (?, ?)",
-                (self.plate_id, self.queue_type_id))
+            values = [self.plate_id, self.queue_type_id]
+
+            extra_columns = []
+            if self.priority is not None:
+                extra_columns.append("priority")
+                values.append(self.priority)
+            if self.is_being_processed is not None:
+                extra_columns.append("is_being_processed")
+                values.append(self.is_being_processed)
+
+            query = "insert into queue (plate_id, queue_type_id{}) values (?, ?{})"
+            ec = ""
+            ev = ""
+            if len(extra_columns) > 0:
+                ec = ", " + ", ".join(extra_columns)
+                ev = ", " + ", ".join(["?" for x in range(len(extra_columns))])
+
+            cursor.execute(query.format(ec, ev), values)
 
             self.id = cursor.lastrowid
         else:

@@ -7,10 +7,12 @@ create table queue_type (
 
 drop table if exists queue;
 create table queue (
-	id						integer primary key,
-	plate_id				text not null,
-	datetime_added			timestamp not null default current_timestamp,
+	id				integer primary key,
+	plate_id			text not null,
 	queue_type_id			integer not null,
+	datetime_added			timestamp not null default current_timestamp,
+	priority			real not null default 100.0,
+	is_being_processed		integer not null default 0,
 
 	foreign key (plate_id) references plate(id),
 	foreign key (queue_type_id) references queue_type(id),

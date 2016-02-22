@@ -24,18 +24,33 @@ class TestQueueOrm(unittest.TestCase):
     def test_create(self):
         cursor = conn.cursor()
 
-        my_qo = qo.QueueOrm(plate_id=1, queue_type_id=default_queue_type_id)
+        my_qo = qo.QueueOrm(plate_id="1", queue_type_id=default_queue_type_id)
 
         my_qo.create(cursor)
 
         cursor.execute("select id, plate_id, queue_type_id from queue where plate_id=?",
             (my_qo.plate_id,))
+        r = [x for x in cursor][0]
+        logger.debug("r:  {}".format(r))
+
+        assert r[0] == my_qo.id, r[0]
+        assert r[1] == my_qo.plate_id, "r[1]:  {}  my_qo.plate_id:  {}".format(r[1], my_qo.plate_id)
+        assert r[2] == my_qo.queue_type_id, r[2]
+
+        my_qo = qo.QueueOrm(plate_id="2", queue_type_id=default_queue_type_id,
+            priority=3.3, is_being_processed=True)
+        my_qo.create(cursor)
+
+        cursor.execute("select id, plate_id, queue_type_id, priority, is_being_processed from queue where plate_id=?", (my_qo.plate_id,))
 
         r = [x for x in cursor][0]
         logger.debug("r:  {}".format(r))
 
-        assert r[0] == my_qo.id
-        assert r[2] == my_qo.queue_type_id
+        assert r[0] == my_qo.id, r[0]
+        assert r[1] == my_qo.plate_id, r[1]
+        assert r[2] == my_qo.queue_type_id, r[2]
+        assert r[3] == my_qo.priority, r[3]
+        assert r[4] == my_qo.is_being_processed, r[4]
 
         conn.rollback()
 
