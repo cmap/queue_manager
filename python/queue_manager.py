@@ -14,7 +14,7 @@ def report_completion(plate_id, completed_queue_type_id, queue_manager_config_pa
 
     logger.debug("queue_manager_config_path:  {}".format(queue_manager_config_path))
 
-    conn = _open_database_connection(queue_manager_config_path)
+    conn = open_database_connection(queue_manager_config_path)
     cursor = conn.cursor()
 
     previous_queue_orm = queue_orm.get_by_plate_id_queue_type_id(cursor, plate_id,
@@ -34,7 +34,7 @@ def report_completion(plate_id, completed_queue_type_id, queue_manager_config_pa
     conn.close()
 
 
-def _open_database_connection(queue_manager_config_path):
+def open_database_connection(queue_manager_config_path):
     logger.debug("queue_manager_config_path:  {}".format(queue_manager_config_path))
 
     cp = ConfigParser.RawConfigParser()

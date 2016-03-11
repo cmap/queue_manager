@@ -139,7 +139,7 @@ class TestQueueOrm(unittest.TestCase):
         logger.debug("r:  {}".format(r))
         assert len(r) == 1, len(r)
         assert r[0] == 1, r[0]
-        
+
         cursor.close()
         conn.close()
 

@@ -13,8 +13,8 @@ cfg_path = "functional_tests/test_queue_manager/queue_manager.cfg"
 
 
 class TestQueueManager(unittest.TestCase):
-    def test__open_database_connection(self):
-        test_conn = queue_manager._open_database_connection(cfg_path)
+    def test_open_database_connection(self):
+        test_conn = queue_manager.open_database_connection(cfg_path)
         assert test_conn is not None
         cursor = test_conn.cursor();
 
@@ -33,7 +33,7 @@ class TestQueueManager(unittest.TestCase):
         test_conn.close()
 
     def test_report_completion(self):
-        conn = queue_manager._open_database_connection(cfg_path)
+        conn = queue_manager.open_database_connection(cfg_path)
         cursor = conn.cursor()
 
         cursor.execute("insert into queue (plate_id, queue_type_id) values ('1', 1)")
@@ -44,7 +44,7 @@ class TestQueueManager(unittest.TestCase):
 
         queue_manager.report_completion("1", 1, queue_manager_config_path=cfg_path)
 
-        conn = queue_manager._open_database_connection(cfg_path)
+        conn = queue_manager.open_database_connection(cfg_path)
         cursor = conn.cursor()
 
         cursor.execute("select queue_type_id from queue where plate_id='1'")
