@@ -4,6 +4,10 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
+_base_query = """select q.id, q.plate_id, q.datetime_added, q.queue_type_id, qt.name, q.priority, q.is_being_processed
+from queue q
+join queue_type qt on qt.id = q.queue_type_id"""
+
 
 class QueueOrm(object):
     def __init__(self, id=None, plate_id=None, datetime_added=None,
@@ -54,14 +58,16 @@ class QueueOrm(object):
         return " ".join(["{}:{}".format(k,v) for (k,v) in self.__dict__.items()])
 
 
-def get_by_plate_id_queue_type_id(cursor, plate_id, queue_type_id):
-    cursor.execute("""select q.id, plate_id, datetime_added, q.queue_type_id, qt.name
-from queue q
-join queue_type qt on qt.id = q.queue_type_id
-where plate_id = ? and q.queue_type_id = ?""", (plate_id, queue_type_id))
+def _build_queue_orm_from_queury_result(cursor):
+    r = [QueueOrm(id=x[0], plate_id=x[1], datetime_added=x[2], queue_type_id=x[3], queue_type_name=x[4], priority=x[5],
+                  is_being_processed=x[6]) for x in cursor]
+    return r
 
-    r = [QueueOrm(id=x[0], plate_id=x[1], datetime_added=x[2], queue_type_id=x[3],
-        queue_type_name=x[4]) for x in cursor]
+
+def get_by_plate_id_queue_type_id(cursor, plate_id, queue_type_id):
+    cursor.execute(_base_query + " where q.plate_id = ? and q.queue_type_id = ?", (plate_id, queue_type_id))
+
+    r = _build_queue_orm_from_queury_result(cursor)
 
     if len(r) == 1:
         return r[0]
@@ -69,3 +75,11 @@ where plate_id = ? and q.queue_type_id = ?""", (plate_id, queue_type_id))
         return None
     else:
         raise Exception("queue_orm get_by_plate_id_queue_type_id based on unique constraint in database, expected only 1 or 0 items, found len(r):  {}".format(len(r)))
+
+def checkout_top_N_items(cursor, queue_type_id, N):
+    cursor.execute(_base_query + " where q.is_being_processed=0 and q.queue_type_id = ? order by q.priority limit 0,?",
+                   (queue_type_id, N))
+
+    r = _build_queue_orm_from_queury_result(cursor)
+
+    return r

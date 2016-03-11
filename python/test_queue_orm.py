@@ -9,10 +9,21 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-conn = build_database.build(":memory:")
+
 
 default_queue_type_id = 2
 default_queue_type_name = "fake queue type"
+
+def _build_conn():
+    conn = build_database.build(":memory:")
+
+    cursor = conn.cursor()
+    cursor.execute("insert into queue_type (id,name) values (?, ?)",
+        (default_queue_type_id, default_queue_type_name))
+    conn.commit()
+    cursor.close()
+
+    return conn
 
 
 class TestQueueOrm(unittest.TestCase):
@@ -22,6 +33,7 @@ class TestQueueOrm(unittest.TestCase):
         assert hasattr(my_qo, "plate_id")
 
     def test_create(self):
+        conn = _build_conn()
         cursor = conn.cursor()
 
         my_qo = qo.QueueOrm(plate_id="1", queue_type_id=default_queue_type_id)
@@ -52,9 +64,11 @@ class TestQueueOrm(unittest.TestCase):
         assert r[3] == my_qo.priority, r[3]
         assert r[4] == my_qo.is_being_processed, r[4]
 
-        conn.rollback()
+        cursor.close()
+        conn.close()
 
     def test_delete(self):
+        conn = _build_conn()
         cursor = conn.cursor()
 
         my_qo = qo.QueueOrm(plate_id=1, queue_type_id=2)
@@ -77,8 +91,10 @@ class TestQueueOrm(unittest.TestCase):
         assert "cannot delete when self.id is None" in str(context.exception)
 
         cursor.close()
+        conn.close()
 
     def test_get_by_plate_id_queue_type_id(self):
+        conn = _build_conn()
         cursor = conn.cursor()
 
         r = qo.get_by_plate_id_queue_type_id(cursor, "fake plate id", default_queue_type_id)
@@ -96,19 +112,33 @@ class TestQueueOrm(unittest.TestCase):
             logger.debug("r:  {}".format(r))
             assert r.id == db_id, r.id
 
-        conn.rollback()
         cursor.close()
+        conn.close()
+
+    def test_checkout_top_N_items(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        for i in range(5):
+            priority = i + 100
+            cursor.execute("insert into queue (plate_id, priority, queue_type_id) values (?, ?, ?)", (str(i), priority,
+                default_queue_type_id))
+        cursor.execute("update queue set is_being_processed=1 where plate_id='1'")
+
+        r = qo.checkout_top_N_items(cursor, default_queue_type_id, 3)
+        for r_indiv in r:
+            logger.debug("r_indiv:  {}".format(r_indiv))
+
+        assert len(r) == 3
+        assert r[0].plate_id == "0", r[0].plate_id
+        assert r[1].plate_id == "2", r[1].plate_id
+        assert r[2].plate_id == "3", r[2].plate_id
+
+        cursor.close()
+        conn.close()
 
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
-    cursor = conn.cursor()
-    cursor.execute("insert into queue_type (id,name) values (?, ?)",
-        (default_queue_type_id, default_queue_type_name))
-    conn.commit()
-    cursor.close()
-
     unittest.main()
-
-    conn.close()
