@@ -82,4 +82,7 @@ def checkout_top_N_items(cursor, queue_type_id, N):
 
     r = _build_queue_orm_from_queury_result(cursor)
 
+    for qo in r:
+        cursor.execute("update queue set is_being_processed = 1 where id = ?", (qo.id,))
+
     return r

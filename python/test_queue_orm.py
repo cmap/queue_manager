@@ -134,6 +134,12 @@ class TestQueueOrm(unittest.TestCase):
         assert r[1].plate_id == "2", r[1].plate_id
         assert r[2].plate_id == "3", r[2].plate_id
 
+        cursor.execute("select distinct is_being_processed from queue where plate_id in ('0','2','3')")
+        r = [x for (x,) in cursor]
+        logger.debug("r:  {}".format(r))
+        assert len(r) == 1, len(r)
+        assert r[0] == 1, r[0]
+        
         cursor.close()
         conn.close()
 
