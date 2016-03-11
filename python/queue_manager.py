@@ -9,11 +9,8 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-default_queue_manager_config_path = os.path.expanduser("~/.queue_manager.cfg")
 
-
-def report_completion(plate_id, completed_queue_type_id,
-    queue_manager_config_path=default_queue_manager_config_path):
+def report_completion(plate_id, completed_queue_type_id, queue_manager_config_path):
 
     logger.debug("queue_manager_config_path:  {}".format(queue_manager_config_path))
 
