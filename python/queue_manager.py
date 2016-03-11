@@ -22,7 +22,8 @@ def report_completion(plate_id, completed_queue_type_id,
 
     previous_queue_orm = queue_orm.get_by_plate_id_queue_type_id(cursor, plate_id,
         completed_queue_type_id)
-    previous_queue_orm.delete(cursor)
+    if previous_queue_orm is not None:
+        previous_queue_orm.delete(cursor)
 
     workflows = workflow_orm.get_by_plate_id_prev_queue_type_id(cursor, plate_id,
         completed_queue_type_id)

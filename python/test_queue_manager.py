@@ -56,6 +56,9 @@ class TestQueueManager(unittest.TestCase):
         r = [x for (x,) in cursor][0]
         assert r == 0, r
 
+    def test_report_completion_no_queue_entry(self):
+        queue_manager.report_completion("1", 1, queue_manager_config_path=cfg_path)
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
