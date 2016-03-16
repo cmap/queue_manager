@@ -2,7 +2,6 @@ import workflow_orm
 import queue_orm
 import ConfigParser
 import sqlite3
-import os.path
 import logging
 import setup_logger
 

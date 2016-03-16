@@ -3,7 +3,6 @@ import setup_logger
 import argparse
 import workflow_template_orm
 import workflow_orm
-import argparse
 import sys
 import ConfigParser
 import sqlite3
@@ -48,6 +47,8 @@ def create(conn, dont_commit, workflow_template_name, plate_ids):
         conn.rollback()
     else:
         conn.commit()
+
+    cursor.close()
 
 
 def list():
