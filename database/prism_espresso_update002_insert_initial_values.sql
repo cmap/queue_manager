@@ -4,7 +4,7 @@ insert into queue_type (name) values ("roast");
 insert into queue_type (name) values ("brew");
 insert into queue_type (name) values ("PRISM fs collect");
 insert into queue_type (name) values ("PRISM assemble level 2");
-insert into queue_type (name) values ("put on S3");
+insert into queue_type (name) values ("S3ify");
 insert into queue_type (name) values ("compare plates");
 insert into queue_type (name) values ("litmus analysis");
 insert into queue_type (name) values ("Cas9 cell baseline analysis");
@@ -27,7 +27,7 @@ insert into workflow_template_pair (workflow_template_id, prev_queue_type_id, ne
 insert into workflow_template_pair (workflow_template_id, prev_queue_type_id, next_queue_type_id)
     select wf.id, qt1.id, qt2.id
     from workflow_template wf, queue_type qt1, queue_type qt2
-    where wf.name="L1000 espresso" and qt1.name="brew" and qt2.name="put on S3";
+    where wf.name="L1000 espresso" and qt1.name="brew" and qt2.name="S3ify";
 insert into workflow_template_pair (workflow_template_id, prev_queue_type_id, next_queue_type_id)
     select wf.id, qt1.id, qt2.id
     from workflow_template wf, queue_type qt1, queue_type qt2
