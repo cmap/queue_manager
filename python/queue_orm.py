@@ -86,3 +86,8 @@ def checkout_top_N_items(cursor, queue_type_id, N):
         cursor.execute("update queue set is_being_processed = 1 where id = ?", (qo.id,))
 
     return r
+
+def get_all(cursor):
+    cursor.execute(_base_query + " order by q.is_being_processed desc, qt.name, q.priority")
+
+    return _build_queue_orm_from_queury_result(cursor)

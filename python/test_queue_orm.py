@@ -143,6 +143,28 @@ class TestQueueOrm(unittest.TestCase):
         cursor.close()
         conn.close()
 
+    def test_get_all(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        for i in range(5):
+            priority = i + 100
+            cursor.execute("insert into queue (plate_id, priority, queue_type_id) values (?, ?, ?)", (str(i), priority,
+                default_queue_type_id))
+        cursor.execute("update queue set is_being_processed=1 where plate_id='1'")
+
+        r = qo.get_all(cursor)
+        for r_indiv in r:
+            logger.debug("r_indiv:  {}".format(r_indiv))
+
+        assert len(r) == 5, len(r)
+        assert r[0].plate_id == "1", r[0].plate_id
+        assert r[0].is_being_processed == True, r[0].is_being_processed
+        assert r[1].plate_id == "0", r[1].plate_id
+        assert r[2].plate_id == "2", r[2].plate_id
+
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
