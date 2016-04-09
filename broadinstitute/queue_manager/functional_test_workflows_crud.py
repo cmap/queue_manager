@@ -19,7 +19,7 @@ class FunctionalTestWorkflowsCrud(unittest.TestCase):
         if os.path.exists(db_file_path):
             os.remove(db_file_path)
         conn = build_database.build(db_file_path, "queue_manager.cfg")
-        build_database.insert_initial_psp_values(conn)
+        build_database.insert_initial_psp_values(conn, "queue_manager.cfg")
         conn.commit()
 
         #setup arguments
