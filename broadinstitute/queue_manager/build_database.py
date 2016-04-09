@@ -1,14 +1,16 @@
-import os
 import sqlite3
+import ConfigParser
 
 
-creation_script_path = "database/update001_create_initial.sql"
-insert_initial_espresso_prism_values_script_path = "database/prism_espresso_update002_insert_initial_values.sql"
-insert_initial_psp_values_script_path = "database/psp_update002_insert_initial_values.sql"
+config_database_section = "Database"
 
 
-def build(connection_string):
-    f = open(creation_script_path)
+def build(connection_string, config_filepath):
+    cp = ConfigParser.RawConfigParser()
+    cp.read(config_filepath)
+
+    f = open(cp.get(config_database_section, "creation_script_path"))
+
     creation_script = f.read().strip()
     f.close()
 
@@ -27,9 +29,15 @@ def _apply_script(script_path, conn):
     conn.executescript(script)
 
 
-def insert_initial_espresso_prism_values(conn):
-    _apply_script(insert_initial_espresso_prism_values_script_path, conn)
+def insert_initial_espresso_prism_values(conn, config_filepath):
+    cp = ConfigParser.RawConfigParser()
+    cp.read(config_filepath)
+
+    _apply_script(cp.get(config_database_section, "insert_initial_espresso_prism_values_script_path"), conn)
 
 
-def insert_initial_psp_values(conn):
-    _apply_script(insert_initial_psp_values_script_path, conn)
+def insert_initial_psp_values(conn, config_filepath):
+    cp = ConfigParser.RawConfigParser()
+    cp.read(config_filepath)
+
+    _apply_script(cp.get(config_database_section, "insert_initial_psp_values_script_path"), conn)

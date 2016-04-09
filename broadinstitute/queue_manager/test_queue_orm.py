@@ -15,7 +15,7 @@ default_queue_type_id = 2
 default_queue_type_name = "fake queue type"
 
 def _build_conn():
-    conn = build_database.build(":memory:")
+    conn = build_database.build(":memory:", "queue_manager.cfg")
 
     cursor = conn.cursor()
     cursor.execute("insert into queue_type (id,name) values (?, ?)",

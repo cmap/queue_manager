@@ -70,8 +70,8 @@ if __name__ == "__main__":
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    conn = build_database.build(db_path)
-    build_database.insert_initial_espresso_prism_values(conn)
+    conn = build_database.build(db_path, "queue_manager.cfg")
+    build_database.insert_initial_espresso_prism_values(conn, "queue_manager.cfg")
     conn.commit()
 
     unittest.main()

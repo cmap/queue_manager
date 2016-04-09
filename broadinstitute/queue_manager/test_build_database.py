@@ -1,5 +1,4 @@
 import build_database
-import sqlite3
 import unittest
 import logging
 import setup_logger
@@ -7,10 +6,12 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
+queue_manager_config = "queue_manager.cfg"
+
 
 class TestBuildDatabase(unittest.TestCase):
     def test_build(self):
-        conn = build_database.build(":memory:")
+        conn = build_database.build(":memory:", queue_manager_config)
         cursor = conn.cursor()
 
         cursor.execute("select count(*) from queue_type")
@@ -30,14 +31,14 @@ class TestBuildDatabase(unittest.TestCase):
         for m in methods:
             logger.debug("m:  {}".format(m))
 
-            conn = build_database.build(":memory:")
+            conn = build_database.build(":memory:", queue_manager_config)
 
             precursor = conn.cursor()
             precursor.execute("select count(*) from queue_type")
             r = [x for (x,) in precursor][0]
             assert r == 0, r
 
-            m(conn)
+            m(conn, queue_manager_config)
             conn.commit()
 
             cursor = conn.cursor()

@@ -98,8 +98,8 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
-    conn = build_database.build(":memory:")
-    build_database.insert_initial_espresso_prism_values(conn)
+    conn = build_database.build(":memory:", "queue_manager.cfg")
+    build_database.insert_initial_espresso_prism_values(conn, "queue_manager.cfg")
     conn.commit()
 
     unittest.main()

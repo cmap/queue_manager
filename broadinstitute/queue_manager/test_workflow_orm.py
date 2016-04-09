@@ -10,7 +10,7 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-conn = build_database.build(":memory:")
+conn = build_database.build(":memory:", "queue_manager.cfg")
 
 default_queue_type_map = {2:"fake queue type", 3:"another fqt", 5:"third fqt"}
 
