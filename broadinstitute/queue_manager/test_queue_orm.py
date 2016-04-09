@@ -166,6 +166,28 @@ class TestQueueOrm(unittest.TestCase):
         cursor.close()
         conn.close()
 
+    def test_delete_by_plate_ids(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+        for i in range(5):
+            cursor.execute("insert into queue (plate_id, queue_type_id) values (?, ?)", (str(i),
+                default_queue_type_id))
+
+        cursor.execute("select * from queue")
+        r = [x for x in cursor]
+        logger.debug("r:  {}".format(r))
+        assert len(r) == 5, len(r)
+
+        qo.delete_by_plate_ids(cursor, [1,2,3])
+
+        cursor.execute("select * from queue")
+        r = [x for x in cursor]
+        logger.debug("r:  {}".format(r))
+
+        assert len(r) == 2, len(r)
+
+
+
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 

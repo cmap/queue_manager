@@ -1,5 +1,6 @@
 import logging
 import setup_logger
+import sql_query_utils
 
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -91,3 +92,9 @@ def get_all(cursor):
     cursor.execute(_base_query + " order by q.is_being_processed desc, qt.name, q.priority")
 
     return _build_queue_orm_from_queury_result(cursor)
+
+def delete_by_plate_ids(cursor, plate_ids):
+    plate_ids_in_clause = sql_query_utils.build_in_clause(plate_ids)
+    query_str = "delete from queue where plate_id in ({})".format(plate_ids_in_clause)
+    logger.debug("query_str:  {}".format(query_str))
+    cursor.execute(query_str)
