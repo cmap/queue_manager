@@ -1,7 +1,5 @@
 import unittest
 import queue_orm as qo
-import sqlite3
-import sys
 import build_database
 import logging
 import setup_logger

@@ -1,7 +1,7 @@
 drop table if exists queue_type;
 create table queue_type (
 	id						integer primary key,
-	name					text not null,
+	name					text not null unique,
 	description				text
 );
 

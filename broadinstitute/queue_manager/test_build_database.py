@@ -22,6 +22,12 @@ class TestBuildDatabase(unittest.TestCase):
         r = [x for (x,) in cursor][0]
         assert r == 0, r
 
+        cursor.execute("insert into queue_type(name) values ('my_fake_queue_type')")
+        with self.assertRaises(Exception) as context:
+            cursor.execute("insert into queue_type(name) values ('my_fake_queue_type')")
+        assert context.exception is not None
+        logger.debug("context.exception:  {}".format(context.exception))
+
         conn.close()
 
     def test_script_methods(self):

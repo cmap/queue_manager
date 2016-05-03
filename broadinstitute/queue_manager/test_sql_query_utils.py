@@ -1,5 +1,5 @@
 import logging
-import cmap.io.setup_logger as setup_logger
+import setup_logger
 import unittest
 import sql_query_utils as squ
 
