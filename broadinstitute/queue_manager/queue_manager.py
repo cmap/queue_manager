@@ -4,9 +4,27 @@ import ConfigParser
 import sqlite3
 import logging
 import setup_logger
+import argparse
+import sys
 
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-verbose', '-v', help='Whether to print a bunch of output.',
+        action='store_true', default=False)
+    parser.add_argument("-queue_manager_config_file", help="path to the queue_manager config file",
+        type=str,default="queue_manager.cfg")
+    parser.add_argument("action", help="action to take", type=str, choices=["report_completion"])
+    parser.add_argument("-completed_queue_type_id", "-cqti",
+        help="when reporting a completion, ID of the queue_type that was completed",
+        type=str, default=None)
+    parser.add_argument("-plate_id", "-pid",
+        help="carry out the specified action for this plate", type=str, default=None)
+    return parser
 
 
 def report_completion(plate_id, completed_queue_type_id, queue_manager_config_path):
@@ -42,3 +60,18 @@ def open_database_connection(queue_manager_config_path):
     conn = sqlite3.connect(cp.get("Database", "sqlite3_file_path"))
 
     return conn
+
+
+def main(args):
+    if args.action == "report_completion":
+        report_completion(args.plate_id, args.completed_queue_type_id, args.queue_manager_config_file)
+
+
+if __name__ == "__main__":
+    args = build_parser().parse_args(sys.argv[1:])
+
+    setup_logger.setup(verbose=args.verbose)
+
+    logger.debug("args:  {}".format(args))
+
+    main(args)
