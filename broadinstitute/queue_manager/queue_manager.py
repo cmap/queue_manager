@@ -6,6 +6,7 @@ import logging
 import setup_logger
 import argparse
 import sys
+import os.path
 
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -17,7 +18,7 @@ def build_parser():
     parser.add_argument('-verbose', '-v', help='Whether to print a bunch of output.',
         action='store_true', default=False)
     parser.add_argument("-queue_manager_config_file", help="path to the queue_manager config file",
-        type=str,default="queue_manager.cfg")
+        type=str,default="~/.queue_manager.cfg")
     parser.add_argument("action", help="action to take", type=str, choices=["report_completion"])
     parser.add_argument("-completed_queue_type_id", "-cqti",
         help="when reporting a completion, ID of the queue_type that was completed",
@@ -69,6 +70,7 @@ def main(args):
 
 if __name__ == "__main__":
     args = build_parser().parse_args(sys.argv[1:])
+    args.queue_manager_config_file = os.path.expanduser(args.queue_manager_config_file)
 
     setup_logger.setup(verbose=args.verbose)
 
