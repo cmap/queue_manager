@@ -55,6 +55,12 @@ class QueueOrm(object):
         else:
             raise Exception("QueueOrm create cannot create when one of these is None - self.plate_id:  {}  self.queue_type_id:  {}".format(self.plate_id, self.queue_type_id))
 
+    def reset_is_being_processed(self, cursor):
+        if self.id is not None:
+            cursor.execute("update queue set is_being_processed = 0 where id = ?", (self.id,))
+        else:
+            raise Exception("QueueOrm reset_is_being_processed cannot work when id is None - self:  {}".format(self))
+
     def __str__(self):
         return " ".join(["{}:{}".format(k,v) for (k,v) in self.__dict__.items()])
 

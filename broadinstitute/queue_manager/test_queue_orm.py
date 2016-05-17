@@ -65,6 +65,36 @@ class TestQueueOrm(unittest.TestCase):
         cursor.close()
         conn.close()
 
+    def test_reset_is_being_processed(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        my_qo = qo.QueueOrm(plate_id="1", queue_type_id=default_queue_type_id, is_being_processed=1)
+        my_qo.create(cursor)
+        logger.debug("my_qo:  {}".format(my_qo))
+
+        cursor.execute("select is_being_processed from queue where id = ?", (my_qo.id,))
+        c = cursor.next()[0]
+        logger.debug("c:  {}".format(c))
+        assert 1 == c, c
+
+        my_qo.reset_is_being_processed(cursor)
+
+        cursor.execute("select is_being_processed from queue where id = ?", (my_qo.id,))
+        r = cursor.next()[0]
+        logger.debug("r:  {}".format(r))
+        assert 0 == r, r
+
+        my_qo.id = None
+        with self.assertRaises(Exception) as context:
+            my_qo.reset_is_being_processed(cursor)
+        assert context.exception
+        logger.debug("context.exception:  {}".format(context.exception))
+        assert "reset_is_being_processed cannot work when id is None" in str(context.exception)
+
+        cursor.close()
+        conn.close()
+
     def test_delete(self):
         conn = _build_conn()
         cursor = conn.cursor()
@@ -203,7 +233,6 @@ class TestQueueOrm(unittest.TestCase):
         logger.debug("r:  {}".format(r))
 
         assert len(r) == 2, len(r)
-
 
 
 if __name__ == "__main__":
