@@ -113,6 +113,26 @@ class TestQueueOrm(unittest.TestCase):
         cursor.close()
         conn.close()
 
+    def test_get_by_plate_id(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        r = qo.get_by_plate_id(cursor, "fake plate id")
+        assert len(r) == 0, len(r)
+
+        my_qo = qo.QueueOrm(plate_id=11, queue_type_id=default_queue_type_id)
+        my_qo.create(cursor)
+
+        r = qo.get_by_plate_id(cursor, 11)
+        assert len(r) == 1, len(r)
+        r = r[0]
+        logger.debug("r:  {}".format(r))
+        assert r.plate_id == "11", r.plate_id
+        assert r.queue_type_id == default_queue_type_id
+
+        cursor.close()
+        conn.close()
+
     def test_checkout_top_N_items(self):
         conn = _build_conn()
         cursor = conn.cursor()

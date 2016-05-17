@@ -98,3 +98,7 @@ def delete_by_plate_ids(cursor, plate_ids):
     query_str = "delete from queue where plate_id in ({})".format(plate_ids_in_clause)
     logger.debug("query_str:  {}".format(query_str))
     cursor.execute(query_str)
+
+def get_by_plate_id(cursor, plate_id):
+    cursor.execute(_base_query + " where q.plate_id = ?", (plate_id,))
+    return _build_queue_orm_from_queury_result(cursor)
