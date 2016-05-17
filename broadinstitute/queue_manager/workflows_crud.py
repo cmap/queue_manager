@@ -20,7 +20,7 @@ def build_parser():
     parser.add_argument("-queue_manager_config_file", help="path to the queue_manager config file",
         type=str,default="~/.queue_manager.cfg")
     parser.add_argument("action", help="action to take", type=str, choices=["create",
-        "list"])
+        "list_templates"])
     parser.add_argument("-workflow_template_name", "-wtn",
         help="name of workflow template to use when creating workflows",
         type=str, default=None)
@@ -52,8 +52,12 @@ def create(conn, dont_commit, workflow_template_name, plate_ids):
     cursor.close()
 
 
-def list():
-    pass
+def list_templates(conn):
+    cursor = conn.cursor()
+    wtos = workflow_template_orm.get_all(cursor)
+    for wto in wtos:
+        print wto
+    cursor.close()
 
 
 def main(args):
@@ -63,8 +67,8 @@ def main(args):
 
     if args.action == "create":
         create(conn, args.dont_commit, args.workflow_template_name, args.plate_ids)
-    elif args.action == "list":
-        list()
+    elif args.action == "list_templates":
+        list_templates(conn)
 
 
 def read_config(queue_manager_config_file):

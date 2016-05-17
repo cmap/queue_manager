@@ -57,6 +57,10 @@ class TestWorkflowsCrud(unittest.TestCase):
         r = wc.validate_args(args)
         assert r == True
 
+    def test_list_templates(self):
+        wc.list_templates(conn)
+
+            
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
