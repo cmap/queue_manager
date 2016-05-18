@@ -6,7 +6,7 @@ insert into queue_type (name) values ("PRISM fs collect");
 insert into queue_type (name) values ("PRISM assemble level 2");
 insert into queue_type (name) values ("S3ify");
 insert into queue_type (name) values ("compare plates");
-insert into queue_type (name) values ("litmus analysis");
+insert into queue_type (name) values ("litmusify");
 insert into queue_type (name) values ("Cas9 cell baseline analysis");
 
 delete from workflow_template;
