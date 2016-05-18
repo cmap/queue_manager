@@ -1,4 +1,7 @@
 
+base_query = "select id, name, description from queue_type "
+
+
 class QueueTypeOrm(object):
     def __init__(self, id=None, name=None, description=None):
         self.id = id
@@ -13,7 +16,7 @@ class QueueTypeOrm(object):
 
 
 def get_by_name(cursor, name):
-    cursor.execute("select id, name, description from queue_type where name = ?", (name,))
+    cursor.execute(base_query + " where name = ?", (name,))
     r = [x for x in cursor]
     if len(r) == 1:
         r = r[0]
@@ -22,3 +25,8 @@ def get_by_name(cursor, name):
         return None
     else:
         raise Exception("queue_type_orm get_by_name found multiple queue_type entries for name:  {}".format(name))
+
+
+def get_all(cursor):
+    cursor.execute(base_query)
+    return [QueueTypeOrm(id=x[0], name=x[1], description=x[2]) for x in cursor]

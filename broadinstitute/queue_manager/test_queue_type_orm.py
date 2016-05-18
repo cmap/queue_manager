@@ -24,6 +24,15 @@ class TestQueueTypeOrm(unittest.TestCase):
 
         conn.rollback()
 
+    def test_get_all(self):
+        cursor.execute("insert into queue_type(name) values ('my_fake_queue_type')")
+        cursor.execute("insert into queue_type(name) values ('my_fake_queue_type2')")
+
+        r = qto.get_all(cursor)
+        assert len(r) == 2, len(r)
+        logger.debug("r:  {}".format(r))
+
+        conn.rollback()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
