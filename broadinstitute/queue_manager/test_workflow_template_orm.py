@@ -9,6 +9,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 conn = None
 
+queue_manager_config_path = "example_queue_manager.cfg"
 
 class TestWorkflowTemplateOrm(unittest.TestCase):
     def test___init__(self):
@@ -70,14 +71,14 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
 
     def test_get_all(self):
         cursor = conn.cursor()
-        cursor.execute("select count(*) from workflow_template")
+        cursor.execute("select count(distinct workflow_template_id) from workflow_template_pair")
         expected_count = [x for (x,) in cursor][0]
         logger.debug("expected_count:  {}".format(expected_count))
 
         r = wto.get_all(cursor)
         assert r is not None
         logger.debug("r:  {}".format(r))
-        assert len(r) == expected_count, len(r)
+        assert len(r) == expected_count, (len(r), expected_count)
 
         cursor.close()
 
@@ -98,8 +99,8 @@ class TestWorkflowTemplateOrm(unittest.TestCase):
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
-    conn = build_database.build(":memory:", "queue_manager.cfg")
-    build_database.insert_initial_espresso_prism_values(conn, "queue_manager.cfg")
+    conn = build_database.build(":memory:", queue_manager_config_path)
+    build_database.insert_initial_espresso_prism_values(conn, queue_manager_config_path)
     conn.commit()
 
     unittest.main()

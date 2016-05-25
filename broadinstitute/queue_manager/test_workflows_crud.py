@@ -11,6 +11,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 conn = None
 
+queue_manager_config_path = "example_queue_manager.cfg"
 
 class TestWorkflowsCrud(unittest.TestCase):
     def test_create(self):
@@ -64,8 +65,8 @@ class TestWorkflowsCrud(unittest.TestCase):
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
-    conn = build_database.build(":memory:", "queue_manager.cfg")
-    build_database.insert_initial_espresso_prism_values(conn, "queue_manager.cfg")
+    conn = build_database.build(":memory:", queue_manager_config_path)
+    build_database.insert_initial_espresso_prism_values(conn, queue_manager_config_path)
     conn.commit()
 
     unittest.main()

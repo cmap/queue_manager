@@ -57,14 +57,14 @@ def _build_from_cursor_query(cursor):
         logger.debug("wt_id:  {}".format(wt_id))
         if wt_id not in r:
             new_wto = WorkflowTemplateOrm(id=wt_id, name=name)
-            logger.debug("new_wto:  {}".format(new_wto))
             r[wt_id] = new_wto
 
         wto = r[wt_id]
-        logger.debug("wto:  {}".format(wto))
 
         pqt = queue_type_orm.QueueTypeOrm(id=prev_qt_id, name=prev_qt_name)
-        npt = queue_type_orm.QueueTypeOrm(id=next_qt_id, name=next_qt_name)
-        wto.queue_type_pairs.append((pqt, npt))
+        nqt = queue_type_orm.QueueTypeOrm(id=next_qt_id, name=next_qt_name)
+        wto.queue_type_pairs.append((pqt, nqt))
+
+        logger.debug("wto:  {}".format(wto))
 
     return r.values()

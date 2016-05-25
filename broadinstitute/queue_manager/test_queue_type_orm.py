@@ -10,6 +10,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 conn = None
 cursor = None
 
+queue_manager_config_path = "example_queue_manager.cfg"
 
 class TestQueueTypeOrm(unittest.TestCase):
     def test_get_by_name(self):
@@ -37,7 +38,7 @@ class TestQueueTypeOrm(unittest.TestCase):
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
 
-    conn = build_database.build(":memory:", "queue_manager.cfg")
+    conn = build_database.build(":memory:", queue_manager_config_path)
     cursor = conn.cursor()
 
     unittest.main()

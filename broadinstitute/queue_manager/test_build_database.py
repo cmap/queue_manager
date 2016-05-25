@@ -6,7 +6,7 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-queue_manager_config = "queue_manager.cfg"
+queue_manager_config = "example_queue_manager.cfg"
 
 
 class TestBuildDatabase(unittest.TestCase):

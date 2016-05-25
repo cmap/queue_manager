@@ -10,7 +10,9 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-conn = build_database.build(":memory:", "queue_manager.cfg")
+queue_manager_config_path = "example_queue_manager.cfg"
+
+conn = None
 
 default_queue_type_map = {2:"fake queue type", 3:"another fqt", 5:"third fqt"}
 
@@ -140,6 +142,8 @@ class TestWorkflowOrm(unittest.TestCase):
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
+
+    conn = build_database.build(":memory:", queue_manager_config_path)
 
     cursor = conn.cursor()
     for (my_id,name) in default_queue_type_map.items():

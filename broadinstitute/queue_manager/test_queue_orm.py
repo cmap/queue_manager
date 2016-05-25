@@ -7,13 +7,13 @@ import setup_logger
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-
+queue_manager_config_path = "example_queue_manager.cfg"
 
 default_queue_type_id = 2
 default_queue_type_name = "fake queue type"
 
 def _build_conn():
-    conn = build_database.build(":memory:", "queue_manager.cfg")
+    conn = build_database.build(":memory:", queue_manager_config_path)
 
     cursor = conn.cursor()
     cursor.execute("insert into queue_type (id,name) values (?, ?)",
