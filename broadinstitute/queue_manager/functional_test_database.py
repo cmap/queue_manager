@@ -12,7 +12,8 @@ queue_manager_config_path = "functional_tests/functional_test_database/queue_man
 
 
 class FunctionalTestDatabase(unittest.TestCase):
-    def test_workflow_template_pair_table(self):
+    @staticmethod
+    def setup_database():
         config = ConfigParser.RawConfigParser()
         config.read(queue_manager_config_path)
         db_file_path = config.get("Database", "sqlite3_file_path")
@@ -20,9 +21,15 @@ class FunctionalTestDatabase(unittest.TestCase):
 
         if os.path.exists(db_file_path):
             os.remove(db_file_path)
+
         conn = build_database.build(db_file_path, queue_manager_config_path)
 
         build_database.insert_initial_espresso_prism_values(conn, queue_manager_config_path)
+
+        return conn
+
+    def test_workflow_template_pair_table(self):
+        conn = FunctionalTestDatabase.setup_database()
 
         cursor = conn.cursor()
 
@@ -48,6 +55,15 @@ class FunctionalTestDatabase(unittest.TestCase):
         assert r[0] == queue_type_dict["S3ify"], (r[0], queue_type_dict)
 
         cursor.close()
+        conn.close()
+
+    def test_prism_espresso_update002_insert_initial_values(self):
+        conn = FunctionalTestDatabase.setup_database()
+
+        #repeated application of this script does not cause problems
+        build_database.insert_initial_espresso_prism_values(conn, queue_manager_config_path)
+        build_database.insert_initial_espresso_prism_values(conn, queue_manager_config_path)
+
         conn.close()
 
 if __name__ == "__main__":
