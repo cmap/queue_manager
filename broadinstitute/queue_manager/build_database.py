@@ -33,7 +33,8 @@ def insert_initial_espresso_prism_values(conn, config_filepath):
     cp = ConfigParser.RawConfigParser()
     cp.read(config_filepath)
 
-    _apply_script(cp.get(config_database_section, "insert_initial_espresso_prism_values_script_path"), conn)
+    _apply_script(cp.get(config_database_section, "prism_espresso_update002_script_path"), conn)
+    _apply_script(cp.get(config_database_section, "prism_espresso_update003_script_path"), conn)
 
 
 def insert_initial_psp_values(conn, config_filepath):

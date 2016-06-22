@@ -8,7 +8,7 @@ import ConfigParser
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-queue_manager_config_path = "functional_tests/functional_test_database/queue_manager.cfg"
+queue_manager_config_path = "functional_tests/test_functional_database/queue_manager.cfg"
 
 
 class FunctionalTestDatabase(unittest.TestCase):

@@ -8,7 +8,7 @@ import os
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-queue_manager_config_path = "functional_tests/functional_test_workflows_crud/queue_manager.cfg"
+queue_manager_config_path = "functional_tests/test_functional_workflows_crud/queue_manager.cfg"
 
 class FunctionalTestWorkflowsCrud(unittest.TestCase):
     def test_create(self):

@@ -54,6 +54,18 @@ class TestBuildDatabase(unittest.TestCase):
 
             conn.close()
 
+    def test_insert_initial_espresso_prism_values(self):
+        conn = build_database.build(":memory:", queue_manager_config)
+
+        build_database.insert_initial_espresso_prism_values(conn, queue_manager_config)
+
+        cursor = conn.cursor()
+        cursor.execute("select count(*) from queue_type where name=?", ("qc_summarfy",))
+        r = [x for (x,) in cursor][0]
+        assert 1 == r
+
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
