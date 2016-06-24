@@ -58,7 +58,10 @@ def open_database_connection(queue_manager_config_path):
     cp = ConfigParser.RawConfigParser()
     cp.read(queue_manager_config_path)
 
-    conn = sqlite3.connect(cp.get("Database", "sqlite3_file_path"))
+    sqlite3_file_path = cp.get("Database", "sqlite3_file_path")
+    logger.debug("sqlite3_file_path:  {}".format(sqlite3_file_path))
+
+    conn = sqlite3.connect(sqlite3_file_path)
 
     return conn
 
