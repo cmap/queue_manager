@@ -32,8 +32,7 @@ def build_parser():
     return parser
 
 
-def create(conn, dont_commit, workflow_template_name, plate_ids):
-    cursor = conn.cursor()
+def create(cursor, workflow_template_name, plate_ids):
     wto = workflow_template_orm.get_by_name(cursor, workflow_template_name)
 
     for pid in plate_ids:
@@ -44,31 +43,30 @@ def create(conn, dont_commit, workflow_template_name, plate_ids):
                 next_queue_type_id=next_qt_id)
             wo.create(cursor)
 
-    if dont_commit:
-        conn.rollback()
-    else:
-        conn.commit()
 
-    cursor.close()
-
-
-def list_templates(conn):
-    cursor = conn.cursor()
+def list_templates(cursor):
     wtos = workflow_template_orm.get_all(cursor)
     for wto in wtos:
         print wto
-    cursor.close()
 
 
 def main(args):
     config = read_config(args.queue_manager_config_file)
 
     conn = sqlite3.connect(config.get("Database", "sqlite3_file_path"))
+    cursor = conn.cursor()
 
     if args.action == "create":
-        create(conn, args.dont_commit, args.workflow_template_name, args.plate_ids)
+        create(cursor, args.workflow_template_name, args.plate_ids)
+        if args.dont_commit:
+            conn.rollback()
+        else:
+            conn.commit()
     elif args.action == "list_templates":
-        list_templates(conn)
+        list_templates(cursor)
+
+    cursor.close()
+    conn.close()
 
 
 def read_config(queue_manager_config_file):

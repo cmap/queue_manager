@@ -15,16 +15,14 @@ queue_manager_config_path = "example_queue_manager.cfg"
 
 class TestWorkflowsCrud(unittest.TestCase):
     def test_create(self):
-        precursor = conn.cursor()
-        precursor.execute("select count(*) from workflow where plate_id=2")
-        r = [x for (x,) in precursor][0]
+        cursor = conn.cursor()
+        cursor.execute("select count(*) from workflow where plate_id=2")
+        r = [x for (x,) in cursor][0]
         assert r == 0, r
-        precursor.close()
 
         plate_ids = [2,3]
-        wc.create(conn, False, "L1000 espresso", plate_ids)
+        wc.create(cursor, "L1000 espresso", plate_ids)
 
-        cursor = conn.cursor()
         cursor.execute("select count(*) from workflow where plate_id=2")
         r = [x for (x,) in cursor][0]
         assert r > 0, r
@@ -38,6 +36,7 @@ class TestWorkflowsCrud(unittest.TestCase):
             logger.debug("found:  {}".format(found))
             assert len(found) == expected_count, len(found)
 
+        conn.rollback()
         cursor.close()
 
     def test_validate_args(self):
@@ -59,7 +58,9 @@ class TestWorkflowsCrud(unittest.TestCase):
         assert r == True
 
     def test_list_templates(self):
-        wc.list_templates(conn)
+        cursor = conn.cursor()
+        wc.list_templates(cursor)
+        cursor.close()
 
             
 if __name__ == "__main__":
