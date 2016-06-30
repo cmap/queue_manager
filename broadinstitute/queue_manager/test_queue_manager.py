@@ -32,7 +32,7 @@ class TestQueueManager(unittest.TestCase):
 
         test_conn.close()
 
-    def test_report_completion(self):
+    def test_report_completion_using_config(self):
         conn = queue_manager.open_database_connection(cfg_path)
         cursor = conn.cursor()
 
@@ -42,7 +42,7 @@ class TestQueueManager(unittest.TestCase):
         conn.commit()
         conn.close()
 
-        queue_manager.report_completion("1", 1, queue_manager_config_path=cfg_path)
+        queue_manager.report_completion_using_config("1", 1, cfg_path)
 
         conn = queue_manager.open_database_connection(cfg_path)
         cursor = conn.cursor()
@@ -56,9 +56,32 @@ class TestQueueManager(unittest.TestCase):
         r = [x for (x,) in cursor][0]
         assert r == 0, r
 
-    def test_report_completion_no_queue_entry(self):
-        queue_manager.report_completion("1", 1, queue_manager_config_path=cfg_path)
+    def test_report_completion_using_config_no_queue_entry(self):
+        queue_manager.report_completion_using_config("1", 1, cfg_path)
 
+    def test_report_completion(self):
+        conn = queue_manager.open_database_connection(cfg_path)
+        cursor = conn.cursor()
+
+        cursor.execute("delete from queue")
+        cursor.execute("delete from workflow")
+        cursor.execute("insert into queue (plate_id, queue_type_id) values ('1', 1)")
+        cursor.execute("insert into workflow (plate_id, prev_queue_type_id, next_queue_type_id) values ('1', 1, 2)")
+
+        queue_manager.report_completion(cursor, "1", 1)
+
+        cursor.execute("select queue_type_id from queue where plate_id='1'")
+        r = [x for (x,) in cursor]
+        assert len(r) == 1, len(r)
+        assert r[0] == 2, r[0]
+
+        cursor.execute("select count(*) from workflow where plate_id='1'")
+        r = [x for (x,) in cursor][0]
+        assert r == 0, r
+        
+        conn.rollback()
+        conn.close()
+        conn.close()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
@@ -75,3 +98,5 @@ if __name__ == "__main__":
     conn.commit()
 
     unittest.main()
+
+    conn.close()

@@ -28,13 +28,21 @@ def build_parser():
     return parser
 
 
-def report_completion(plate_id, completed_queue_type_id, queue_manager_config_path):
+def report_completion_using_config(plate_id, completed_queue_type_id, queue_manager_config_path):
 
     logger.debug("queue_manager_config_path:  {}".format(queue_manager_config_path))
 
     conn = open_database_connection(queue_manager_config_path)
     cursor = conn.cursor()
 
+    report_completion(cursor, plate_id, completed_queue_type_id)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def report_completion(cursor, plate_id, completed_queue_type_id):
     previous_queue_orm = queue_orm.get_by_plate_id_queue_type_id(cursor, plate_id,
         completed_queue_type_id)
     if previous_queue_orm is not None:
@@ -47,9 +55,6 @@ def report_completion(plate_id, completed_queue_type_id, queue_manager_config_pa
         qo = queue_orm.QueueOrm(plate_id=plate_id, queue_type_id=w.next_queue_type_id)
         qo.create(cursor)
         w.delete(cursor)
-
-    conn.commit()
-    conn.close()
 
 
 def open_database_connection(queue_manager_config_path):
