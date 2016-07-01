@@ -78,10 +78,11 @@ class TestQueueManager(unittest.TestCase):
         cursor.execute("select count(*) from workflow where plate_id='1'")
         r = [x for (x,) in cursor][0]
         assert r == 0, r
-        
+
         conn.rollback()
         conn.close()
         conn.close()
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

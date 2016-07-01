@@ -99,7 +99,7 @@ class TestQueueOrm(unittest.TestCase):
         conn = _build_conn()
         cursor = conn.cursor()
 
-        my_qo = qo.QueueOrm(plate_id=1, queue_type_id=2)
+        my_qo = qo.QueueOrm(plate_id=1, queue_type_id=default_queue_type_id)
         my_qo.create(cursor)
         my_qo.delete(cursor)
 
@@ -120,6 +120,27 @@ class TestQueueOrm(unittest.TestCase):
 
         cursor.close()
         conn.close()
+
+    def test_update(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        my_qo = qo.QueueOrm(plate_id=1, queue_type_id=default_queue_type_id, is_being_processed=0)
+        my_qo.create(cursor)
+        my_qo = qo.get_by_plate_id_queue_type_id(cursor, 1, default_queue_type_id)
+
+        my_qo.priority = 3
+        my_qo.plate_id = 5
+        my_qo.is_being_processed = 1
+
+        my_qo.update(cursor)
+
+        r = qo.get_by_plate_id_queue_type_id(cursor, 5, default_queue_type_id)
+        assert r is not None
+        logger.debug("r:  {}".format(r))
+        assert r.priority == my_qo.priority, r.priority
+        assert r.is_being_processed == my_qo.is_being_processed, r.is_being_processed
+
 
     def test_get_by_plate_id_queue_type_id(self):
         conn = _build_conn()
