@@ -72,9 +72,14 @@ def open_database_connection(queue_manager_config_path):
 
 
 def main(args):
-    if args.action == "report_completion":
-        report_completion(args.plate_id, args.completed_queue_type_id, args.queue_manager_config_file)
+    conn = open_database_connection(args.queue_manager_config_file)
+    cursor = conn.cursor()
 
+    if args.action == "report_completion":
+        report_completion(cursor, args.plate_id, args.completed_queue_type_id)
+
+    cursor.close()
+    conn.close()
 
 if __name__ == "__main__":
     args = build_parser().parse_args(sys.argv[1:])
