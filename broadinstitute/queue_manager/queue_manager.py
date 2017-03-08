@@ -76,7 +76,7 @@ def main(args):
     cursor = conn.cursor()
 
     if args.action == "report_completion":
-        report_completion(cursor, args.completed_queue_type_id)
+        report_completion(cursor, args.plate_id, args.completed_queue_type_id)
 
     cursor.close()
     conn.close()
