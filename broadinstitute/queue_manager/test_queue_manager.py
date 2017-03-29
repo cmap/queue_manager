@@ -42,7 +42,7 @@ class TestQueueManager(unittest.TestCase):
         conn.commit()
         conn.close()
 
-        queue_manager.report_completion_using_config("1", 1, cfg_path)
+        queue_manager.report_completion_using_config(["1"], 1, cfg_path)
 
         conn = queue_manager.open_database_connection(cfg_path)
         cursor = conn.cursor()
@@ -67,8 +67,10 @@ class TestQueueManager(unittest.TestCase):
         cursor.execute("delete from workflow")
         cursor.execute("insert into queue (plate_id, queue_type_id) values ('1', 1)")
         cursor.execute("insert into workflow (plate_id, prev_queue_type_id, next_queue_type_id) values ('1', 1, 2)")
+        cursor.execute("insert into queue (plate_id, queue_type_id) values ('2', 1)")
+        cursor.execute("insert into workflow (plate_id, prev_queue_type_id, next_queue_type_id) values ('2', 1, 2)")
 
-        queue_manager.report_completion(cursor, "1", 1)
+        queue_manager.report_completion(cursor, ["1", "2"], 1)
 
         cursor.execute("select queue_type_id from queue where plate_id='1'")
         r = [x for (x,) in cursor]
