@@ -62,6 +62,27 @@ class TestWorkflowsCrud(unittest.TestCase):
         wc.list_templates(cursor)
         cursor.close()
 
+    def test_delete_by_plate_ids(self):
+        cursor = conn.cursor()
+
+        cursor.execute("select count(*) from workflow where plate_id=2")
+        c = cursor.fetchone()[0]
+        logger.debug("check that there are no workflows already present before running test for plate_id=2 - c:  {}".format(c))
+
+        wc.create(cursor, "L1000 espresso", [2])
+        cursor.execute("select count(*) from workflow where plate_id=2")
+        c = cursor.fetchone()[0]
+        logger.debug("check that there workflows were successfully added already present before running delete for plate_id=2 - c:  {}".format(c))
+        self.assertGreater(c, 0)
+
+        wc.delete_by_plate_ids(cursor, [2])
+        cursor.execute("select count(*) from workflow where plate_id=2")
+        r = cursor.fetchone()[0]
+        logger.debug("remaining workflow entries - r:  {}".format(r))
+        self.assertEqual(0, r)
+
+        cursor.close()
+        conn.rollback()
             
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

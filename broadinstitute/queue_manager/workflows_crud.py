@@ -7,6 +7,7 @@ import sys
 import ConfigParser
 import sqlite3
 import os.path
+import sql_query_utils
 
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -20,7 +21,7 @@ def build_parser():
     parser.add_argument("-queue_manager_config_file", help="path to the queue_manager config file",
         type=str,default="~/.queue_manager.cfg")
     parser.add_argument("action", help="action to take", type=str, choices=["create",
-        "list_templates"])
+        "list_templates", "delete_by_pid"])
     parser.add_argument("-workflow_template_name", "-wtn",
         help="name of workflow template to use when creating workflows",
         type=str, default=None)
@@ -50,6 +51,14 @@ def list_templates(cursor):
         print wto
 
 
+def delete_by_plate_ids(cursor, plate_ids):
+    in_clause = sql_query_utils.build_in_clause(plate_ids)
+    logger.debug("in_clause:  {}".format(in_clause))
+    delete_stmt = "delete from workflow where plate_id in ({})".format(in_clause)
+    logger.debug("delete_stmt:  {}".format(delete_stmt))
+    cursor.execute(delete_stmt)
+
+
 def main(args):
     config = read_config(args.queue_manager_config_file)
 
@@ -58,12 +67,15 @@ def main(args):
 
     if args.action == "create":
         create(cursor, args.workflow_template_name, args.plate_ids)
-        if args.dont_commit:
-            conn.rollback()
-        else:
-            conn.commit()
     elif args.action == "list_templates":
         list_templates(cursor)
+    elif args.action == "delete_by_pids":
+        delete_by_plate_ids(cursor, args.plate_ids)
+
+    if args.dont_commit:
+        conn.rollback()
+    else:
+        conn.commit()
 
     cursor.close()
     conn.close()

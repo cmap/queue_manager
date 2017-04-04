@@ -297,9 +297,10 @@ class TestQueueOrm(unittest.TestCase):
         r = qo.get_by_queue_type_id(cursor, default_queue_type_id*other_queue_type_id)
         logger.debug("r:  {}".format(r))
         self.assertEqual(0, len(r))
-        
+
         cursor.close()
         conn.close()
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
