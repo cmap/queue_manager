@@ -141,6 +141,8 @@ class TestQueueOrm(unittest.TestCase):
         assert r.priority == my_qo.priority, r.priority
         assert r.is_being_processed == my_qo.is_being_processed, r.is_being_processed
 
+        cursor.close()
+        conn.close()
 
     def test_get_by_plate_id_queue_type_id(self):
         conn = _build_conn()
@@ -255,6 +257,49 @@ class TestQueueOrm(unittest.TestCase):
 
         assert len(r) == 2, len(r)
 
+        cursor.close()
+        conn.close()
+
+    def test_get_by_queue_type_id(self):
+        conn = _build_conn()
+        cursor = conn.cursor()
+
+        cursor.execute("insert into queue_type (name) values ('my other fake queue type')")
+        cursor.execute("select id from queue_type where name = 'my other fake queue type'")
+        other_queue_type_id = cursor.fetchone()[0]
+        logger.debug("other_queue_type_id:  {}".format(other_queue_type_id))
+
+        N_expected = 3
+        for i in xrange(N_expected):
+            cursor.execute("insert into queue (queue_type_id, plate_id) values (?, ?)", (default_queue_type_id, i))
+
+        for i in xrange(N_expected+4):
+            cursor.execute("insert into queue (queue_type_id, plate_id) values (?, ?)", (other_queue_type_id, i))
+
+        cursor.execute("select count(*) from queue")
+        c = cursor.fetchone()[0]
+        logger.debug("confirm total added c:  {}".format(c))
+        self.assertEqual(2*N_expected+4, c)
+
+        r = qo.get_by_queue_type_id(cursor, default_queue_type_id)
+        logger.debug("r:  {}".format(r))
+        self.assertEqual(N_expected, len(r))
+        r_plate_ids = set([x.plate_id for x in r])
+        self.assertEqual(set([str(x) for x in xrange(N_expected)]), r_plate_ids)
+
+        r = qo.get_by_queue_type_id(cursor, other_queue_type_id)
+        logger.debug("r:  {}".format(r))
+        self.assertEqual(N_expected+4, len(r))
+        r_plate_ids = set([x.plate_id for x in r])
+        self.assertEqual(set([str(x) for x in xrange(N_expected+4)]), r_plate_ids)
+
+        #query using queue_type_id that does not match anything
+        r = qo.get_by_queue_type_id(cursor, default_queue_type_id*other_queue_type_id)
+        logger.debug("r:  {}".format(r))
+        self.assertEqual(0, len(r))
+        
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

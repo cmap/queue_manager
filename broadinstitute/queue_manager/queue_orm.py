@@ -113,3 +113,7 @@ def delete_by_plate_ids(cursor, plate_ids):
 def get_by_plate_id(cursor, plate_id):
     cursor.execute(_base_query + " where q.plate_id = ?", (plate_id,))
     return _build_queue_orm_from_queury_result(cursor)
+
+def get_by_queue_type_id(cursor, queue_type_id):
+    cursor.execute(_base_query + " where q.queue_type_id = ?", (queue_type_id,))
+    return _build_queue_orm_from_queury_result(cursor)
