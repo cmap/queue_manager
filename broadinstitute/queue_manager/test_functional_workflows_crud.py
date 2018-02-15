@@ -11,6 +11,10 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 queue_manager_config_path = "functional_tests/test_functional_workflows_crud/queue_manager.cfg"
 
 class FunctionalTestWorkflowsCrud(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.remove("functional_tests/test_functional_workflows_crud/functional_test_workflows_crud.sqlite3")
+
     def test_create(self):
         #setup database
         config = workflows_crud.read_config(queue_manager_config_path)

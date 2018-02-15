@@ -13,6 +13,10 @@ cfg_path = "functional_tests/test_queue_manager/queue_manager.cfg"
 
 
 class TestQueueManager(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.remove("functional_tests/test_queue_manager/test_queue_manager.sqlite3")
+
     def test_open_database_connection(self):
         test_conn = queue_manager.open_database_connection(cfg_path)
         assert test_conn is not None

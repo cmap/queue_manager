@@ -12,6 +12,10 @@ queue_manager_config_path = "functional_tests/test_functional_database/queue_man
 
 
 class FunctionalTestDatabase(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.remove("functional_tests/test_functional_database/test_functional_database.sqlite3")
+
     @staticmethod
     def setup_database():
         config = ConfigParser.RawConfigParser()
