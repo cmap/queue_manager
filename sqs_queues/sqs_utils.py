@@ -38,31 +38,27 @@ def receive_messages_from_sqs_queue(queue_url):
 
     messages = []
     for message in response['Messages']:
-        m = {
-            "machine_barcode": message['Body'],
-            "receipt_handle": message['ReceiptHandle']
-        }
+        m = Message(message, queue_url)
         messages.append(m)
     return messages
 
 
-def consume_message_from_sqs_queue(queue_url, receipt_handle):
-
-    response = SQS.delete_message(QueueUrl=queue_url,
-                                  ReceiptHandle=receipt_handle)
+def consume_message_from_sqs_queue(message):
+    response = SQS.delete_message(QueueUrl=message.queue_url,
+                                  ReceiptHandle=message.receipt_handle)
     status = response['ResponseMetadata']['HTTPStatusCode']
     if status == 200:
-        print "{}: Successfully consumed {} message from {} queue".format(status, receipt_handle, queue_url)
+        print "{}: Successfully consumed {} message from {} queue".format(status, message.receipt_handle, message.queue_url)
 
 def clear_out_sqs_queue(queue_url):
     response = SQS.purge_queue(QueueUrl=queue_url)
 
 
 class Message(object):
-    def __init__(self, message, in_queue_name):
+    def __init__(self, message, in_queue_url):
         self.machine_barcode = message['Body']
         self.receipt_handle = message['ReceiptHandle']
-        self.current_queue = in_queue_name
+        self.current_queue_url = in_queue_url
 
 
 messages = receive_messages_from_sqs_queue('https://sqs.us-east-1.amazonaws.com/207675869076/yeezy.fifo')
