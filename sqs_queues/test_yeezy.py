@@ -4,14 +4,15 @@ import logging
 
 import pestle.io.setup_logger as setup_logger
 
-
 import sqs_queues.yeezy as yeezy
-import sqs_queues.sqs_utils as utils
 import caldaia.utils.orm.lims_plate_orm as lpo
+
+import sqs_queues.sqs_utils as utils
+utils.boto3 = mock.Mock()
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-
+OG_SQS_boto = yeezy.sqs_utils.boto3
 OG_SQS_receive = yeezy.sqs_utils.receive_messages_from_sqs_queue
 OG_SQS_message_pass = yeezy.sqs_utils.Message.pass_to_next_queue
 OG_LPO_get = yeezy.scan.lpo.get_by_machine_barcode
@@ -23,6 +24,7 @@ class TestYeezy(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        yeezy.sqs_utils.boto3 = mock.Mock()
         yeezy.sqs_utils.receive_messages_from_sqs_queue = mock.Mock(return_value=TestYeezy.build_messages())
         yeezy.sqs_utils.Message.pass_to_next_queue = mock.Mock()
         yeezy.scan.lpo.get_by_machine_barcode = mock.Mock()
@@ -32,6 +34,7 @@ class TestYeezy(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        yeezy.sqs_utils.boto3 = OG_SQS_boto
         yeezy.sqs_utils.receive_messages_from_sqs_queue = OG_SQS_receive
         yeezy.sqs_utils.Message.pass_to_next_queue = OG_SQS_message_pass
         yeezy.scan.lpo.get_by_machine_barcode = OG_LPO_get
