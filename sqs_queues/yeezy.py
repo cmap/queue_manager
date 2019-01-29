@@ -14,8 +14,6 @@ import ConfigParser
 
 import caldaia.utils.mysql_utils as mu
 import caldaia.utils.config_tools as config_tools
-import caldaia.utils.orm.lims_plate_orm as lpo
-
 import pestle.io.setup_logger as setup_logger
 
 import sqs_queues.scan as scan
@@ -49,10 +47,11 @@ def main(args):
             thread = threading.Thread(target=check_scan_done, args=(args, cursor, message, kim_queue))
 
 
-def check_scan_done(args, cursor, message, kim_queue):
-    plate_info = scan.Scan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
+def check_scan_done(args, cursor, message, kim_queue_config):
+    # NB all args added with config_tools have type str
+    plate_info = scan.Scan(cursor, args.archive_path, int(args.scan_done_elapsed_time), machine_barcode=message.machine_barcode)
     if plate_info.scan_done:
-        message.pass_to_next_queue(kim_queue)
+        message.pass_to_next_queue(kim_queue_config)
         return True
     else:
         return False

@@ -1,11 +1,13 @@
 import unittest
-import mock
 import logging
+import mock
 
 import pestle.io.setup_logger as setup_logger
 
-import sqs_queues.yeezy as yeezy
 import caldaia.utils.orm.lims_plate_orm as lpo
+import sqs_queues.sqs_utils as utils
+
+import sqs_queues.yeezy as yeezy
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -43,6 +45,7 @@ class TestYeezy(unittest.TestCase):
     def build_args():
         args = yeezy.build_parser().parse_args(['--queue_manager_config_filepath', './queue_manager.cfg',
                                          '--hostname', 'babies'])
+        logger.debug(args)
         return args
 
     @staticmethod
@@ -50,24 +53,21 @@ class TestYeezy(unittest.TestCase):
         num = machine_barcode.rsplit("_",1)[1]
         l = lpo.LimsPlateOrm()
         l.machine_barcode = machine_barcode
-        l.rna_plate = 'rna_plate' + num
-        l.is_yanked = 'false'
+        l.rna_plate = 'rna_plate' + "_" + num
 
+        logger.debug(l)
         return l
 
     @staticmethod
     def build_messages():
-        m = yeezy.sqs_utils.Message()
-        m.machine_barcode = 'machine_barcode_1'
-        m.receipt_handle = 'receipt_handle_1'
-        m.current_queue_url = 'yeezy_url_1'
+        dict1 = {"Body": 'machine_barcode_1',
+                "ReceiptHandle": 'receipt_handle_1'}
 
-        m2 = yeezy.sqs_utils.Message()
-        m2.machine_barcode = 'machine_barcode_2'
-        m2.receipt_handle = 'receipt_handle_2'
-        m2.current_queue_url = 'yeezy_url_2'
+        dict2 = {"Body": 'machine_barcode_2',
+                "ReceiptHandle": 'receipt_handle_2'}
 
-        list_of_messages = [m, m2]
+        list_of_messages = [utils.Message(dict1, 'yeezy_url_1'),
+                            utils.Message(dict2, 'yeezy_url_2')]
         return list_of_messages
 
     @staticmethod
@@ -84,18 +84,77 @@ class TestYeezy(unittest.TestCase):
         return (args, message, kim_queue)
 
     def setUp(self):
-        logger.info("babies")
+        pass
 
     def tearDown(self):
+        yeezy.scan.lpo.get_by_machine_barcode.reset_mock()
         yeezy.scan.Scan.get_num_lxbs_scanned.reset_mock()
         yeezy.scan.Scan.check_last_lxb_addition.reset_mock()
         yeezy.scan.Scan.get_csv_path.reset_mock()
         yeezy.sqs_utils.Message.pass_to_next_queue.reset_mock()
 
-    def happy_test_check_scan_done(self):
-
+    def test_all_happy_test_check_scan_done(self):
+        logger.info("babies")
         # Setup mock return values
         (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(384, 1, True)
+
+        logger.info(yeezy.scan.Scan.get_num_lxbs_scanned.return_value)
+        scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
+        self.assertEqual(scan_is_done, True)
+
+        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan.Scan.get_csv_path.assert_called_once()
+        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+
+        yeezy.sqs_utils.Message.pass_to_next_queue.assert_called_once()
+        message_pass = yeezy.sqs_utils.Message.pass_to_next_queue.call_args_list
+        self.assertEqual(message_pass, [mock.call(kim_queue)])
+
+
+    def test_unhappy_num_lxbs_check_scan_done(self):
+        # Setup mock return values
+        (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(200, 1, True)
+
+
+        scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
+        self.assertEqual(scan_is_done, False)
+
+        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan.Scan.get_csv_path.assert_called_once()
+        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+
+        self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
+
+    def test_unhappy_csv_path_check_scan_done(self):
+        (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(384, 1, None)
+
+        scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
+        self.assertEqual(scan_is_done, False)
+
+        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan.Scan.get_csv_path.assert_called_once()
+        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+
+        self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
+
+    def test_unhappy_csv_and_unhappy_num_lxb_check_scan_done(self):
+        (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(200, 1, None)
+
+        scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
+        self.assertEqual(scan_is_done, False)
+
+        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan.Scan.get_csv_path.assert_called_once()
+        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+
+        self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
+
+    def test_unhappy_lxb_happy_elapsed_time(self):
+        (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(200, 86401, True)
 
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, True)
@@ -106,20 +165,12 @@ class TestYeezy(unittest.TestCase):
         yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
 
         yeezy.sqs_utils.Message.pass_to_next_queue.assert_called_once()
-        message_pass = vars(yeezy.sqs_utils.Message.pass_to_next_queue.call_args[0][0])
-        self.assertEqual(message, mock.call(kim_queue))
+        message_pass = yeezy.sqs_utils.Message.pass_to_next_queue.call_args_list
+        self.assertEqual(message_pass, [mock.call(kim_queue)])
 
-
-
-    def unhappy_num_lxbs_check_scan_done(self):
-        # Setup mock return values
-        (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(200, 1, True)
-
-
-        scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
-        self.assertEqual(scan_is_done, False)
 
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
+
     unittest.main()

@@ -26,13 +26,11 @@ class Scan(object):
         self.num_lxbs_scanned = None
         self.scan_done = None
         self.elapsed_time = None
-        self.qc_done = None
 
         self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
 
         if self.lims_plate_orm:
             self.rna_plate = self.lims_plate_orm.rna_plate
-            self.is_yanked = self.lims_plate_orm.is_yanked
             self.lxb_path = os.path.join(self.archive_path, "lxb", self.rna_plate + "*")
             self.csv_path = self.get_csv_path()
             self.num_lxbs_scanned = self.get_num_lxbs_scanned()
@@ -72,12 +70,10 @@ class Scan(object):
         now = time.time()
         try:
             max_mtime = max([os.path.getmtime(x) for x in lxb_files])
-            logger.info(
-                "last time that an lxb file was modified (in seconds wrt Epoch time) max_mtime:  {}".format(max_mtime))
 
             elapsed_time = now - max_mtime
             logger.info(
-                "elapsed time since last lxb file modification (in seconds) elapsed_time:  {}".format(elapsed_time))
+                "elapsed time since last lxb file modification (in seconds): {}".format(elapsed_time))
             return elapsed_time
         except Exception as e:
             logger.exception("failed to getmtime for lxb files.  stacktrace:  ")
@@ -98,14 +94,20 @@ class Scan(object):
 
         is_scan_done = False
         if self.num_lxbs_scanned >= 384 and self.csv_path is not None:
+            logger.info('here')
             is_scan_done = True
         elif self.num_lxbs_scanned < 384 and self.csv_path is not None:
             is_scan_done = elapsed_time > self.scan_done_elapsed_time
+        elif (self.num_lxbs_scanned >= 384 and self.csv_path is None) or \
+                (self.num_lxbs_scanned < 384  and elapsed_time > self.scan_done_elapsed_time):
+            self.make_csv()
 
         logger.info(
-            "self.num_lxbs_scanned:  {}  self.csv_path:  {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
-                self.num_lxbs_scanned, self.csv_path, self.scan_done_elapsed_time, is_scan_done))
+            "self.num_lxbs_scanned:  {}  self.csv_path:  {}  elapsed_time: {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
+                self.num_lxbs_scanned, self.csv_path, elapsed_time, self.scan_done_elapsed_time, is_scan_done))
 
         return (is_scan_done, elapsed_time)
 
-
+    def make_csv(self):
+        # todo ?
+        pass
