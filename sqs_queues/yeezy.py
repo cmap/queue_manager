@@ -27,7 +27,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    config_tools.add_config_file_settings_to_args(parser)
+    config_tools.add_config_file_options_to_parser(parser)
     config_tools.add_options_to_override_config(parser, ['hostname', 'scan_done_elapsed_time', 'archive_path', 'queue_manager_config_filepath'])
     return parser
 
@@ -46,15 +46,16 @@ def main(args):
     messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
 
     for message in messages:
-        lims_plate_orm = lpo.get_by_machine_barcode(cursor, message.machine_barcode)
-        thread = threading.Thread(target=check_scan_done, args=(args, message, kim_queue, lims_plate_orm))
+        thread = threading.Thread(target=check_scan_done, args=(args, cursor, message, kim_queue))
 
 
-def check_scan_done(args, message, kim_queue, lims_plate_orm):
-    plate_info = scan.Scan(args.archive_path, args.scan_done_elapsed_time, lims_plate_orm=lims_plate_orm)
+def check_scan_done(args, cursor, message, kim_queue):
+    plate_info = scan.Scan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
     if plate_info.scan_done:
-        sqs_utils.consume_message_from_sqs_queue(message)
-        sqs_utils.send_message_to_sqs_queue(kim_queue['queue_url'], lims_plate_orm.machine_barcode, kim_queue['tag'])
+        message.pass_to_next_queue(kim_queue)
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])

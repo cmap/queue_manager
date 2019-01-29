@@ -59,8 +59,11 @@ class Message(object):
         self.machine_barcode = message['Body']
         self.receipt_handle = message['ReceiptHandle']
         self.current_queue_url = in_queue_url
+    def _remove_from_current_queue(self):
+        consume_message_from_sqs_queue(self)
 
+    def pass_to_next_queue(self, queue_config):
+        # NB: queue_config here is from ConfigParser.items(queue_name)
+        self._remove_from_current_queue()
+        send_message_to_sqs_queue(queue_config['queue_url'], self.machine_barcode, queue_config['tag'])
 
-messages = receive_messages_from_sqs_queue('https://sqs.us-east-1.amazonaws.com/207675869076/yeezy.fifo')
-for message in messages:
-    print message.machine_barcode

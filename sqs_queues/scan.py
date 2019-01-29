@@ -8,6 +8,8 @@ import time
 import logging
 import pestle.io.setup_logger as setup_logger
 
+import caldaia.utils.orm.lims_plate_orm as lpo
+
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 # time to wait for a csv in seconds before declaring the csv as missing
@@ -15,7 +17,7 @@ csv_wait_time = 600
 
 
 class Scan(object):
-    def __init__(self, archive_path, scan_done_elapsed_time, lims_plate_orm=None):
+    def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode=None):
 
         self.archive_path = archive_path
         self.scan_done_elapsed_time = scan_done_elapsed_time
@@ -26,11 +28,11 @@ class Scan(object):
         self.elapsed_time = None
         self.qc_done = None
 
-        self.lims_plate_orm = lims_plate_orm
-        self.rna_plate = lims_plate_orm.rna_plate
-        self.is_yanked = lims_plate_orm.is_yanked
+        self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
 
         if self.lims_plate_orm:
+            self.rna_plate = self.lims_plate_orm.rna_plate
+            self.is_yanked = self.lims_plate_orm.is_yanked
             self.lxb_path = os.path.join(self.archive_path, "lxb", self.rna_plate + "*")
             self.csv_path = self.get_csv_path()
             self.num_lxbs_scanned = self.get_num_lxbs_scanned()
@@ -65,15 +67,7 @@ class Scan(object):
             logger.debug([(x, os.path.getmtime(x)) for x in csv_paths])
             return max(csv_paths, key=lambda x: os.path.getmtime(x))
 
-    def check_scan_done(self):
-        '''
-        figure out if scan is finished. either there are 384 lxbs or the last
-        update to any file happened more than 2 hrs ago
-        '''
-        if self.num_lxbs_scanned == 0:
-            return (False, None)
-
-        # didn't have 0, check if scanning has stopped
+    def check_last_lxb_addition(self):
         lxb_files = glob.glob(os.path.join(self.lxb_path, '*'))
         now = time.time()
         try:
@@ -84,19 +78,34 @@ class Scan(object):
             elapsed_time = now - max_mtime
             logger.info(
                 "elapsed time since last lxb file modification (in seconds) elapsed_time:  {}".format(elapsed_time))
-
-            is_scan_done = False
-            if self.num_lxbs_scanned >= 384 and self.csv_path is not None:
-                is_scan_done = True
-            elif self.num_lxbs_scanned < 384 and self.csv_path is not None:
-                is_scan_done = elapsed_time > self.scan_done_elapsed_time
-
-            logger.info(
-                "self.num_lxbs_scanned:  {}  self.csv_path:  {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
-                    self.num_lxbs_scanned, self.csv_path, self.scan_done_elapsed_time, is_scan_done))
-
-            return (is_scan_done, elapsed_time)
-
+            return elapsed_time
         except Exception as e:
             logger.exception("failed to getmtime for lxb files.  stacktrace:  ")
+            return None
+
+    def check_scan_done(self):
+        '''
+        figure out if scan is finished. either there are 384 lxbs or the last
+        update to any file happened more than 2 hrs ago
+        '''
+        if self.num_lxbs_scanned == 0:
             return (False, None)
+
+        # didn't have 0, check if scanning has stopped
+        elapsed_time = self.check_last_lxb_addition()
+        if elapsed_time is None:
+            return (False, None)
+
+        is_scan_done = False
+        if self.num_lxbs_scanned >= 384 and self.csv_path is not None:
+            is_scan_done = True
+        elif self.num_lxbs_scanned < 384 and self.csv_path is not None:
+            is_scan_done = elapsed_time > self.scan_done_elapsed_time
+
+        logger.info(
+            "self.num_lxbs_scanned:  {}  self.csv_path:  {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
+                self.num_lxbs_scanned, self.csv_path, self.scan_done_elapsed_time, is_scan_done))
+
+        return (is_scan_done, elapsed_time)
+
+
