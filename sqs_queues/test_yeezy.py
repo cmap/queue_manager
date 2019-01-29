@@ -14,10 +14,10 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 OG_SQS_boto = yeezy.sqs_utils.boto3
 OG_SQS_receive = yeezy.sqs_utils.receive_messages_from_sqs_queue
 OG_SQS_message_pass = yeezy.sqs_utils.Message.pass_to_next_queue
-OG_LPO_get = yeezy.scan.lpo.get_by_machine_barcode
-OG_scan_num_lxbs = yeezy.scan.Scan.get_num_lxbs_scanned
-OG_scan_csv = yeezy.scan.Scan.get_csv_path
-OG_scan_last_lxb = yeezy.scan.Scan.check_last_lxb_addition
+OG_LPO_get = yeezy.scan_from_archive.lpo.get_by_machine_barcode
+OG_scan_num_lxbs = yeezy.scan_from_archive.Scan.get_num_lxbs_scanned
+OG_scan_csv = yeezy.scan_from_archive.Scan.get_csv_path
+OG_scan_last_lxb = yeezy.scan_from_archive.Scan.check_last_lxb_addition
 
 class TestYeezy(unittest.TestCase):
 
@@ -26,20 +26,20 @@ class TestYeezy(unittest.TestCase):
         yeezy.sqs_utils.boto3 = mock.Mock()
         yeezy.sqs_utils.receive_messages_from_sqs_queue = mock.Mock(return_value=TestYeezy.build_messages())
         yeezy.sqs_utils.Message.pass_to_next_queue = mock.Mock()
-        yeezy.scan.lpo.get_by_machine_barcode = mock.Mock()
-        yeezy.scan.Scan.get_num_lxbs_scanned = mock.Mock()
-        yeezy.scan.Scan.get_csv_path = mock.Mock()
-        yeezy.scan.Scan.check_last_lxb_addition = mock.Mock()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode = mock.Mock()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned = mock.Mock()
+        yeezy.scan_from_archive.Scan.get_csv_path = mock.Mock()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition = mock.Mock()
 
     @classmethod
     def tearDownClass(cls):
         yeezy.sqs_utils.boto3 = OG_SQS_boto
         yeezy.sqs_utils.receive_messages_from_sqs_queue = OG_SQS_receive
         yeezy.sqs_utils.Message.pass_to_next_queue = OG_SQS_message_pass
-        yeezy.scan.lpo.get_by_machine_barcode = OG_LPO_get
-        yeezy.scan.Scan.get_num_lxbs_scanned = OG_scan_num_lxbs
-        yeezy.scan.Scan.get_csv_path = OG_scan_csv
-        yeezy.scan.Scan.check_last_lxb_addition = OG_scan_last_lxb
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode = OG_LPO_get
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned = OG_scan_num_lxbs
+        yeezy.scan_from_archive.Scan.get_csv_path = OG_scan_csv
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition = OG_scan_last_lxb
 
     @staticmethod
     def build_args():
@@ -75,11 +75,11 @@ class TestYeezy(unittest.TestCase):
         args = TestYeezy.build_args()
         message = TestYeezy.build_messages()[1]
         kim_queue = {"queue_url": "kim_url", "tag": "kim_tag"}
-        yeezy.scan.lpo.get_by_machine_barcode.return_value = TestYeezy.build_lims_plate_orm(message.machine_barcode)
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.return_value = TestYeezy.build_lims_plate_orm(message.machine_barcode)
 
-        yeezy.scan.Scan.get_num_lxbs_scanned.return_value = num_lxbs_scanned
-        yeezy.scan.Scan.check_last_lxb_addition.return_value = last_lxb_addition
-        yeezy.scan.Scan.get_csv_path.return_value = csv_path
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.return_value = num_lxbs_scanned
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.return_value = last_lxb_addition
+        yeezy.scan_from_archive.Scan.get_csv_path.return_value = csv_path
 
         return (args, message, kim_queue)
 
@@ -87,10 +87,10 @@ class TestYeezy(unittest.TestCase):
         pass
 
     def tearDown(self):
-        yeezy.scan.lpo.get_by_machine_barcode.reset_mock()
-        yeezy.scan.Scan.get_num_lxbs_scanned.reset_mock()
-        yeezy.scan.Scan.check_last_lxb_addition.reset_mock()
-        yeezy.scan.Scan.get_csv_path.reset_mock()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.reset_mock()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.reset_mock()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.reset_mock()
+        yeezy.scan_from_archive.Scan.get_csv_path.reset_mock()
         yeezy.sqs_utils.Message.pass_to_next_queue.reset_mock()
 
     def test_all_happy_test_check_scan_done(self):
@@ -98,14 +98,14 @@ class TestYeezy(unittest.TestCase):
         # Setup mock return values
         (args, message, kim_queue) = TestYeezy.common_setup_check_scan_done(384, 1, True)
 
-        logger.info(yeezy.scan.Scan.get_num_lxbs_scanned.return_value)
+        logger.info(yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.return_value)
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, True)
 
-        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
-        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
-        yeezy.scan.Scan.get_csv_path.assert_called_once()
-        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_csv_path.assert_called_once()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.assert_called_once()
 
         yeezy.sqs_utils.Message.pass_to_next_queue.assert_called_once()
         message_pass = yeezy.sqs_utils.Message.pass_to_next_queue.call_args_list
@@ -120,10 +120,10 @@ class TestYeezy(unittest.TestCase):
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, False)
 
-        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
-        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
-        yeezy.scan.Scan.get_csv_path.assert_called_once()
-        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_csv_path.assert_called_once()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.assert_called_once()
 
         self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
 
@@ -133,10 +133,10 @@ class TestYeezy(unittest.TestCase):
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, False)
 
-        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
-        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
-        yeezy.scan.Scan.get_csv_path.assert_called_once()
-        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_csv_path.assert_called_once()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.assert_called_once()
 
         self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
 
@@ -146,10 +146,10 @@ class TestYeezy(unittest.TestCase):
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, False)
 
-        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
-        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
-        yeezy.scan.Scan.get_csv_path.assert_called_once()
-        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_csv_path.assert_called_once()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.assert_called_once()
 
         self.assertFalse(yeezy.sqs_utils.Message.pass_to_next_queue.called)
 
@@ -159,10 +159,10 @@ class TestYeezy(unittest.TestCase):
         scan_is_done = yeezy.check_scan_done(args, None, message, kim_queue)
         self.assertEqual(scan_is_done, True)
 
-        yeezy.scan.lpo.get_by_machine_barcode.assert_called_once()
-        yeezy.scan.Scan.get_num_lxbs_scanned.assert_called_once()
-        yeezy.scan.Scan.get_csv_path.assert_called_once()
-        yeezy.scan.Scan.check_last_lxb_addition.assert_called_once()
+        yeezy.scan_from_archive.lpo.get_by_machine_barcode.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_num_lxbs_scanned.assert_called_once()
+        yeezy.scan_from_archive.Scan.get_csv_path.assert_called_once()
+        yeezy.scan_from_archive.Scan.check_last_lxb_addition.assert_called_once()
 
         yeezy.sqs_utils.Message.pass_to_next_queue.assert_called_once()
         message_pass = yeezy.sqs_utils.Message.pass_to_next_queue.call_args_list

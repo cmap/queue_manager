@@ -16,7 +16,7 @@ import caldaia.utils.mysql_utils as mu
 import caldaia.utils.config_tools as config_tools
 import pestle.io.setup_logger as setup_logger
 
-import sqs_queues.scan as scan
+import sqs_queues.scan_from_archive as scan
 import sqs_queues.sqs_utils as sqs_utils
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -49,12 +49,12 @@ def main(args):
 
 def check_scan_done(args, cursor, message, kim_queue_config):
     # NB all args added with config_tools have type str
-    plate_info = scan.Scan(cursor, args.archive_path, int(args.scan_done_elapsed_time), machine_barcode=message.machine_barcode)
+    plate_info = scan.ScanFromArchive(cursor, args.archive_path, int(args.scan_done_elapsed_time), machine_barcode=message.machine_barcode)
     if plate_info.scan_done:
         message.pass_to_next_queue(kim_queue_config)
         return True
-    else:
-        return False
+
+    return False
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])

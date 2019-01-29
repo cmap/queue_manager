@@ -12,12 +12,8 @@ import caldaia.utils.orm.lims_plate_orm as lpo
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-# time to wait for a csv in seconds before declaring the csv as missing
-csv_wait_time = 600
-
-
-class Scan(object):
-    def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode=None):
+class ScanFromArchive(object):
+    def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode):
 
         self.archive_path = archive_path
         self.scan_done_elapsed_time = scan_done_elapsed_time
@@ -30,11 +26,15 @@ class Scan(object):
         self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
 
         if self.lims_plate_orm:
-            self.rna_plate = self.lims_plate_orm.rna_plate
-            self.lxb_path = os.path.join(self.archive_path, "lxb", self.rna_plate + "*")
-            self.csv_path = self.get_csv_path()
-            self.num_lxbs_scanned = self.get_num_lxbs_scanned()
-            (self.scan_done, self.elapsed_time) = self.check_scan_done()
+            self.plate_search_name = self.lims_plate_orm.rna_plate
+        else:
+            self.plate_search_name = machine_barcode
+
+        self.lxb_path = os.path.join(self.archive_path, "lxb", self.plate_search_name + "*")
+        self.csv_path = self.get_csv_path()
+        self.num_lxbs_scanned = self.get_num_lxbs_scanned()
+        (self.scan_done, self.elapsed_time) = self.check_scan_done()
+
 
     def __str__(self):
         return " ".join(["{}:{}".format(k, v) for (k, v) in self.__dict__.items()])
@@ -50,7 +50,7 @@ class Scan(object):
         find and return the path to the csv file for the given plate
         '''
 
-        csv_search = os.path.join(self.archive_path, "csv", self.rna_plate + "*.csv")
+        csv_search = os.path.join(self.archive_path, "csv", self.plate_search_name + "*.csv")
         logger.debug("csv_search:  {}".format(csv_search))
 
         csv_paths = glob.glob(csv_search)
@@ -98,6 +98,8 @@ class Scan(object):
             is_scan_done = True
         elif self.num_lxbs_scanned < 384 and self.csv_path is not None:
             is_scan_done = elapsed_time > self.scan_done_elapsed_time
+
+
         elif (self.num_lxbs_scanned >= 384 and self.csv_path is None) or \
                 (self.num_lxbs_scanned < 384  and elapsed_time > self.scan_done_elapsed_time):
             self.make_csv()
