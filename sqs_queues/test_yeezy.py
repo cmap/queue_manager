@@ -7,9 +7,6 @@ import pestle.io.setup_logger as setup_logger
 import sqs_queues.yeezy as yeezy
 import caldaia.utils.orm.lims_plate_orm as lpo
 
-import sqs_queues.sqs_utils as utils
-utils.boto3 = mock.Mock()
-
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 OG_SQS_boto = yeezy.sqs_utils.boto3
@@ -60,12 +57,12 @@ class TestYeezy(unittest.TestCase):
 
     @staticmethod
     def build_messages():
-        m = utils.Message()
+        m = yeezy.sqs_utils.Message()
         m.machine_barcode = 'machine_barcode_1'
         m.receipt_handle = 'receipt_handle_1'
         m.current_queue_url = 'yeezy_url_1'
 
-        m2 = utils.Message()
+        m2 = yeezy.sqs_utils.Message()
         m2.machine_barcode = 'machine_barcode_2'
         m2.receipt_handle = 'receipt_handle_2'
         m2.current_queue_url = 'yeezy_url_2'
