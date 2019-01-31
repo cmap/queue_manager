@@ -35,17 +35,20 @@ def main(args):
     cursor = db.cursor()
 
     cp = ConfigParser.ConfigParser()
+
     if os.path.exists(args.queue_manager_config_filepath):
         cp.read(args.queue_manager_config_filepath)
 
-    yeezy_queue_url = cp.get('yeezy', 'queue_url')
-    kim_queue = cp.items('kim')
+        yeezy_queue_url = cp.get('yeezy', 'queue_url')
+        kim_queue = cp.items('kim')
 
-    messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
-    if messages is not None:
-        for message in messages:
-            thread = threading.Thread(target=check_scan_done, args=(args, cursor, message, kim_queue))
-
+        messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
+        if messages is not None:
+            for message in messages:
+                thread = threading.Thread(target=check_scan_done, args=(args, cursor, message, kim_queue))
+    else :
+        #todo;
+        Exception("babies")
 
 def check_scan_done(args, cursor, message, kim_queue_config):
     # NB all args added with config_tools have type str
