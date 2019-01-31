@@ -23,10 +23,12 @@ def send_message_to_sqs_queue(queue_url, message_body, tag):
     """
     SQS = boto3.client('sqs')
 
-    deduplicator = str(message_body) + "_" + tag
+    message = str(message_body)
+
+    deduplicator = message + "_" + tag
     response = SQS.send_message(QueueUrl=queue_url,
-                                MessageBody=message_body,
-                                MessageGroupId=message_body,
+                                MessageBody=message,
+                                MessageGroupId=message,
                                 MessageDeduplicationId=deduplicator)
 
     status = response['ResponseMetadata']['HTTPStatusCode']
