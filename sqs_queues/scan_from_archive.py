@@ -25,7 +25,7 @@ class ScanFromArchive(object):
         self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
 
         if self.lims_plate_orm:
-            self.plate_search_name = self.lims_plate_orm.rna_plate
+            self.plate_search_name = self.lims_plate_orm.det_plate
         else:
             self.plate_search_name = machine_barcode
 
