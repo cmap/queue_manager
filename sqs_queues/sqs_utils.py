@@ -45,6 +45,7 @@ def receive_messages_from_sqs_queue(queue_url):
     print "{}: Received {} messages from {} queue".format(status, len(response['Messages']), queue_url.rsplit("/",1)[1])
 
     messages = []
+    print response['Messages']
     for message in response['Messages']:
         m = Message(message, queue_url)
         messages.append(m)
@@ -83,4 +84,5 @@ class Message(object):
 
         self._remove_from_current_queue()
         send_message_to_sqs_queue(next_queue_config['queue_url'], self.machine_barcode, next_queue_config['tag'])
+
 
