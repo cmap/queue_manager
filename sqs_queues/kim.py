@@ -24,7 +24,7 @@ import pestle.io.setup_logger as setup_logger
 import pestle.data_ninja.lims.rename_plate_files as rpf
 
 
-import sqs_queues.scan as scan
+import sqs_queues.scan_from_archive as scan
 import sqs_queues.sqs_utils as sqs_utils
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -49,9 +49,12 @@ def main(args):
 
     messages = sqs_utils.receive_messages_from_sqs_queue(kim_queue['queue_url'])
     for message in messages:
-        scan_info = scan.Scan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
+
+        scan_info = scan.ScanFromArchive(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
+
         if scan_info.lims_plate_orm is None:
-            pass
+            handle_plate_no_lims_database_entry()
+            break
 
         destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
         setup_project_directory_structure_if_needed(destination_project_dir)
@@ -59,8 +62,10 @@ def main(args):
         copy_lxbs_to_project_directory(destination_project_dir, scan_info)
 
         destination_lxb_dir = os.path.join(destination_project_dir, 'lxb')
-        copy_csv_to_project_directory(destination_lxb_dir, scan_info)
-        rename_plate_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
+
+        make_csv_in_lxb_directory(destination_lxb_dir, scan_info)
+
+        rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
 
         make_lims_database_updates(cursor, scan_info.lims_plate_orm)
 
@@ -74,8 +79,11 @@ def make_lims_database_updates(cursor, lims_plate_orm):
 
     lims_plate_orm.update_in_db(cursor)
 
+    return lims_plate_orm
+
 
 def setup_project_directory_structure_if_needed(destination_project_dir):
+
     if not os.path.exists(destination_project_dir):
         os.mkdir(destination_project_dir)
         for subdir in ['lxb', 'map_src', 'maps', 'roast', 'brew', 'cup']:
@@ -84,8 +92,7 @@ def setup_project_directory_structure_if_needed(destination_project_dir):
 
 def copy_lxbs_to_project_directory(destination_project_dir, scan_info):
 
-    destination_lxb_dir = os.path.join(destination_project_dir, 'lxb')
-
+    destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
 
     src_lxb_file_list = glob.glob(os.path.join(scan_info.lxb_path, '*.lxb'))
     src_lxb_file_list.sort()
@@ -97,18 +104,14 @@ def copy_lxbs_to_project_directory(destination_project_dir, scan_info):
         shutil.copyfile(src_lxb_file, dest_lxb_file)
 
         if i > 0 and i % 10 == 0:
-            logger.debug("copying progress - num_src_lxb_files: {}  i: {}".format(num_src_lxb_files, i))
+            logger.debug("copying progress - working on {} out of {}".format(i, num_src_lxb_files))
 
-def copy_csv_to_project_directory(destination_lxb_dir, scan_info):
-
-    if scan_info.csv_path and os.path.exists(scan_info.csv_path):
-        shutil.copy(scan_info.csv_path, destination_lxb_dir)
-    else:
-        pass
+def make_csv_in_lxb_directory(destination_lxb_dir, scan_info):
 
 
-def rename_plate_files(plate_name, destination_lxb_dir):
-    rpf.rename_files(plate_name, destination_lxb_dir)
+
+def check_lxb_corruption():
+    pass
 
 def handle_plate_no_lims_database_entry():
     pass

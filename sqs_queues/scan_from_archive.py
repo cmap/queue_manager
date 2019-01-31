@@ -18,7 +18,6 @@ class ScanFromArchive(object):
         self.archive_path = archive_path
         self.scan_done_elapsed_time = scan_done_elapsed_time
         self.lxb_path = None
-        self.csv_path = None
         self.num_lxbs_scanned = None
         self.scan_done = None
         self.elapsed_time = None
@@ -31,7 +30,6 @@ class ScanFromArchive(object):
             self.plate_search_name = machine_barcode
 
         self.lxb_path = os.path.join(self.archive_path, "lxb", self.plate_search_name + "*")
-        self.csv_path = self.get_csv_path()
         self.num_lxbs_scanned = self.get_num_lxbs_scanned()
         (self.scan_done, self.elapsed_time) = self.check_scan_done()
 
@@ -44,26 +42,6 @@ class ScanFromArchive(object):
         return the number of lxbs scanned for the plate
         '''
         return len(glob.glob(os.path.join(self.lxb_path, '*.lxb')))
-
-    def get_csv_path(self):
-        '''
-        find and return the path to the csv file for the given plate
-        '''
-
-        csv_search = os.path.join(self.archive_path, "csv", self.plate_search_name + "*.csv")
-        logger.debug("csv_search:  {}".format(csv_search))
-
-        csv_paths = glob.glob(csv_search)
-        logger.debug("csv_paths:  {}".format(csv_paths))
-
-        if len(csv_paths) == 0:
-            return None
-        elif len(csv_paths) == 1:
-            return csv_paths[0]
-        else:
-            logger.info("multiple csv's found, choosing newest")
-            logger.debug([(x, os.path.getmtime(x)) for x in csv_paths])
-            return max(csv_paths, key=lambda x: os.path.getmtime(x))
 
     def check_last_lxb_addition(self):
         lxb_files = glob.glob(os.path.join(self.lxb_path, '*'))
@@ -93,23 +71,14 @@ class ScanFromArchive(object):
             return (False, None)
 
         is_scan_done = False
-        if self.num_lxbs_scanned >= 384 and self.csv_path is not None:
-            logger.info('here')
+        if self.num_lxbs_scanned >= 384 :
             is_scan_done = True
-        elif self.num_lxbs_scanned < 384 and self.csv_path is not None:
+        elif self.num_lxbs_scanned < 384 :
             is_scan_done = elapsed_time > self.scan_done_elapsed_time
 
 
-        elif (self.num_lxbs_scanned >= 384 and self.csv_path is None) or \
-                (self.num_lxbs_scanned < 384  and elapsed_time > self.scan_done_elapsed_time):
-            self.make_csv()
-
         logger.info(
-            "self.num_lxbs_scanned:  {}  self.csv_path:  {}  elapsed_time: {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
-                self.num_lxbs_scanned, self.csv_path, elapsed_time, self.scan_done_elapsed_time, is_scan_done))
+            "self.num_lxbs_scanned:  {}   elapsed_time: {}  self.scan_done_elapsed_time:  {}  is_scan_done:  {}".format(
+                self.num_lxbs_scanned, elapsed_time, self.scan_done_elapsed_time, is_scan_done))
 
         return (is_scan_done, elapsed_time)
-
-    def make_csv(self):
-        # todo ?
-        pass
