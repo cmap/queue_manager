@@ -23,7 +23,7 @@ def send_message_to_sqs_queue(queue_url, message_body, tag):
     """
     SQS = boto3.client('sqs')
 
-    deduplicator = message_body + "_" + tag
+    deduplicator = str(message_body) + "_" + tag
     response = SQS.send_message(QueueUrl=queue_url,
                                 MessageBody=message_body,
                                 MessageGroupId=message_body,
