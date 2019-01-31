@@ -48,6 +48,7 @@ def receive_messages_from_sqs_queue(queue_url):
     print response['Messages']
     for message in response['Messages']:
         m = Message(message, queue_url)
+        print m
         messages.append(m)
 
     if len(messages) == 0:
@@ -76,6 +77,17 @@ class Message(object):
         self.machine_barcode = message['Body']
         self.receipt_handle = message['ReceiptHandle']
         self.current_queue_url = current_queue
+
+    def __repr__(self):
+        key_list = [x for x in self.__dict__.keys()]
+        key_list.sort()
+        ret_list = ["{}:{}".format(x, self.__dict__[x]) for x in key_list]
+
+        return " ".join(ret_list)
+
+    def __str__(self):
+        return self.__repr__()
+
     def _remove_from_current_queue(self):
         consume_message_from_sqs_queue(self)
 
