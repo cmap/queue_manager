@@ -43,9 +43,11 @@ def main(args):
         kim_queue = cp.items('kim')
 
         messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
+        print messages
+
         if messages is not None:
             for message in messages:
-                thread = threading.Thread(target=check_scan_done, args=(args, cursor, message, kim_queue))
+                check_scan_done(args, cursor, message, kim_queue)
     else :
         #todo;
         Exception("babies")
