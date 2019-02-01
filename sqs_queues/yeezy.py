@@ -24,7 +24,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
+    config_tools.add_config_file_settings_to_args(parser)
     config_tools.add_config_file_options_to_parser(parser)
     config_tools.add_options_to_override_config(parser, ['scan_done_elapsed_time', 'queue_manager_config_filepath'])
     return parser
@@ -63,7 +63,6 @@ def check_scan_done(args, cursor, message, kim_queue_config):
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
-    config_tools.add_config_file_settings_to_args(args)
 
     setup_logger.setup(verbose=True)
 
