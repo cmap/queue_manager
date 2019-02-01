@@ -28,7 +28,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     config_tools.add_config_file_options_to_parser(parser)
     config_tools.add_options_to_override_config(parser,
-                                                ['hostname', 'archive_path','scan_done_elapsed_time', 'queue_manager_config_filepath'])
+                                                ['hostname','archive_path','scan_done_elapsed_time', 'queue_manager_config_filepath'])
 
     return parser
 
@@ -44,7 +44,7 @@ def main(args):
         cp.read(args.queue_manager_config_filepath)
 
         yeezy_queue_url = cp.get('yeezy', 'queue_url')
-        kim_queue = cp.items('kim')
+        kim_queue = dict(cp.items('kim'))
 
         messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
 
