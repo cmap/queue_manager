@@ -22,16 +22,20 @@ import sqs_queues.sqs_utils as sqs_utils
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 
+
 def build_parser():
+
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    config_tools.add_config_file_settings_to_args(parser)
     config_tools.add_config_file_options_to_parser(parser)
-    config_tools.add_options_to_override_config(parser, ['scan_done_elapsed_time', 'queue_manager_config_filepath'])
+    config_tools.add_options_to_override_config(parser,
+                                                ['hostname', 'scan_done_elapsed_time', 'queue_manager_config_filepath'])
+
     return parser
 
 def main(args):
+    print args
 
-    db = mu.DB(host=args.hostname).db
+    db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
     cp = ConfigParser.ConfigParser()
@@ -63,6 +67,7 @@ def check_scan_done(args, cursor, message, kim_queue_config):
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
+    config_tools.add_config_file_settings_to_args(args)
 
     setup_logger.setup(verbose=True)
 

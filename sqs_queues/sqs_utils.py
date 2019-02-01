@@ -1,8 +1,5 @@
 import boto3
 
-
-# SQS = boto3.client('sqs')
-
 def get_queue_url_from_name(queue_name):
     #todo: may require AWS configuration
     SQS = boto3.client('sqs')
@@ -10,6 +7,7 @@ def get_queue_url_from_name(queue_name):
     response = SQS.get_queue_url(QueueName=queue_name)
     if response:
         print response
+
 
 def send_message_to_sqs_queue(queue_url, message_body, tag):
     """
@@ -52,7 +50,9 @@ def receive_messages_from_sqs_queue(queue_url):
 
         return messages
     else :
+        print "No messages to receive in {} queue".format(queue_url.rsplit("/",1)[1])
         return None
+
 
 def consume_message_from_sqs_queue(message):
     SQS = boto3.client('sqs')
@@ -61,11 +61,11 @@ def consume_message_from_sqs_queue(message):
                                   ReceiptHandle=message.receipt_handle)
     status = response['ResponseMetadata']['HTTPStatusCode']
     if status == 200:
-        print "{}: Successfully consumed {} message from {} queue".format(status, message.receipt_handle, message.queue_url)
+        print "{}: Successfully consumed {} message from {} queue".format(status, message.machine_barcode, message.queue_url)
+
 
 def clear_out_sqs_queue(queue_url):
     SQS = boto3.client('sqs')
-
     response = SQS.purge_queue(QueueUrl=queue_url)
 
 
@@ -74,6 +74,7 @@ class Message(object):
         self.machine_barcode = message['Body']
         self.receipt_handle = message['ReceiptHandle']
         self.current_queue_url = current_queue
+
     def __repr__(self):
         key_list = [x for x in self.__dict__.keys()]
         key_list.sort()
@@ -89,9 +90,5 @@ class Message(object):
 
     def pass_to_next_queue(self, next_queue_config):
         # NB: queue_config here is from ConfigParser.items(queue_name)
-
         self._remove_from_current_queue()
         send_message_to_sqs_queue(next_queue_config['queue_url'], self.machine_barcode, next_queue_config['tag'])
-
-
-send_message_to_sqs_queue("https://sqs.us-east-1.amazonaws.com/207675869076/yeezy.fifo", "806090", "YZ")
