@@ -57,11 +57,11 @@ def receive_messages_from_sqs_queue(queue_url):
 def consume_message_from_sqs_queue(message):
     SQS = boto3.client('sqs')
 
-    response = SQS.delete_message(QueueUrl=message.queue_url,
+    response = SQS.delete_message(QueueUrl=message.current_queue_url,
                                   ReceiptHandle=message.receipt_handle)
     status = response['ResponseMetadata']['HTTPStatusCode']
     if status == 200:
-        print "{}: Successfully consumed {} message from {} queue".format(status, message.machine_barcode, message.queue_url)
+        print "{}: Successfully consumed {} message from {} queue".format(status, message.machine_barcode, message.current_queue_url)
 
 
 def clear_out_sqs_queue(queue_url):
