@@ -26,7 +26,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     config_tools.add_config_file_options_to_parser(parser)
-    config_tools.add_options_to_override_config(parser, ['hostname', 'scan_done_elapsed_time', 'archive_path', 'queue_manager_config_filepath'])
+    config_tools.add_options_to_override_config(parser, ['scan_done_elapsed_time', 'queue_manager_config_filepath'])
     return parser
 
 def main(args):
@@ -43,7 +43,6 @@ def main(args):
         kim_queue = cp.items('kim')
 
         messages = sqs_utils.receive_messages_from_sqs_queue(yeezy_queue_url)
-        print messages
 
         if messages is not None:
             for message in messages:
@@ -55,6 +54,7 @@ def main(args):
 def check_scan_done(args, cursor, message, kim_queue_config):
     # NB all args added with config_tools have type str
     plate_info = scan.ScanFromArchive(cursor, args.archive_path, int(args.scan_done_elapsed_time), machine_barcode=message.machine_barcode)
+    print plate_info
     if plate_info.scan_done:
         message.pass_to_next_queue(kim_queue_config)
         return True
