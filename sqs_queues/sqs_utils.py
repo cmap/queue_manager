@@ -40,22 +40,19 @@ def receive_messages_from_sqs_queue(queue_url):
     SQS = boto3.client('sqs')
 
     response = SQS.receive_message(QueueUrl=queue_url)
-    status = response['ResponseMetadata']['HTTPStatusCode']
 
-    print "{}: Received {} messages from {} queue".format(status, len(response['Messages']), queue_url.rsplit("/",1)[1])
+    if response['Messages']:
+        status = response['ResponseMetadata']['HTTPStatusCode']
+        print "{}: Received {} messages from {} queue".format(status, len(response['Messages']), queue_url.rsplit("/",1)[1])
 
-    messages = []
-    print response['Messages']
-    for message in response['Messages']:
-        m = Message(message, queue_url)
-        print m
-        messages.append(m)
+        messages = []
+        for message in response['Messages']:
+            m = Message(message, queue_url)
+            messages.append(m)
 
-    if len(messages) == 0:
+        return messages
+    else :
         return None
-
-    return messages
-
 
 def consume_message_from_sqs_queue(message):
     SQS = boto3.client('sqs')
@@ -77,7 +74,6 @@ class Message(object):
         self.machine_barcode = message['Body']
         self.receipt_handle = message['ReceiptHandle']
         self.current_queue_url = current_queue
-
     def __repr__(self):
         key_list = [x for x in self.__dict__.keys()]
         key_list.sort()
@@ -98,3 +94,4 @@ class Message(object):
         send_message_to_sqs_queue(next_queue_config['queue_url'], self.machine_barcode, next_queue_config['tag'])
 
 
+send_message_to_sqs_queue("https://sqs.us-east-1.amazonaws.com/207675869076/yeezy.fifo", "806090", "YZ")
