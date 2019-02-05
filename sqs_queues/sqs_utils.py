@@ -47,8 +47,8 @@ def receive_messages_from_sqs_queue(queue_url):
         for message in response['Messages']:
             m = Message(message, queue_url)
             messages.append(m)
-
         return messages
+
     else :
         print "No messages to receive in {} queue".format(queue_url.rsplit("/",1)[1])
         return None

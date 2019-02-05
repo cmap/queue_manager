@@ -12,7 +12,7 @@ import caldaia.utils.orm.lims_plate_orm as lpo
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
-class ScanFromArchive(object):
+class QueueScan(object):
     def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode):
 
         self.archive_path = archive_path
