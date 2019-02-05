@@ -21,7 +21,7 @@ import pestle.io.setup_logger as setup_logger
 import pestle.data_ninja.lims.rename_plate_files as rpf
 
 
-import sqs_queues.scan_from_archive as scan
+import sqs_queues.queue_scan as qscan
 import sqs_queues.sqs_utils as sqs_utils
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -47,35 +47,34 @@ def main(args):
 
         if messages is not None:
             for message in messages:
-                scan_info = scan.ScanFromArchive(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
-
-                if scan_info.lims_plate_orm is None:
-                    handle_plate_no_lims_database_entry()
-                    break
-
-                # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
-                destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
-                destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
-                setup_project_directory_structure_if_needed(destination_project_dir)
-
+                scan_info = qscan.QueueScan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
+                (destination_project_dir, destination_lxb_dir, is_dev) = setup_arguments(args.data_path, scan_info)
                 copy_lxbs_to_project_directory(destination_lxb_dir, scan_info)
-                make_csv_in_lxb_directory(destination_lxb_dir, scan_info)
-                rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
 
-                make_lims_database_updates(cursor, scan_info.lims_plate_orm)
+                if not is_dev:
+                    make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info)
+                    rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
+                    make_lims_database_updates(cursor, scan_info.lims_plate_orm)
 
 
-def make_lims_database_updates(cursor, lims_plate_orm):
-    # SET FIELD IN ORM OBJECT
-    rna_plate_fields = [lims_plate_orm.pert_plate, lims_plate_orm.cell_id, lims_plate_orm.pert_time, lims_plate_orm.rep_num]
-    lims_plate_orm.rna_plate =  "_".join(rna_plate_fields)
-    lims_plate_orm.det_plate = lims_plate_orm.rna_plate + "_" + lims_plate_orm.bead_set
-    lims_plate_orm.scan_det_plate = lims_plate_orm.original_barcode + "_" + lims_plate_orm.bead_set
+def setup_arguments(data_path, scan_info):
+    is_dev = False
 
-    # USE ORM OBJECT TO UPDATE DATABASE
-    lims_plate_orm.update_in_db(cursor)
-    return lims_plate_orm
+    if scan_info.lims_plate_orm is None:
+        if scan_info.plate_search_name.startswith("DEV"):
+            is_dev = True
+            destination_project_dir = os.path.join(data_path, "DEV")
+            destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.plate_search_name)
+        else:
+            handle_plate_no_lims_database_entry(scan_info)
+            sys.exit(666)
+    else:
+        # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
+        destination_project_dir = os.path.join(data_path, scan_info.lims_plate_orm.project_code)
+        destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
+        setup_project_directory_structure_if_needed(destination_project_dir)
 
+    return (destination_project_dir, destination_lxb_dir, is_dev)
 
 def setup_project_directory_structure_if_needed(destination_project_dir):
     # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
@@ -99,7 +98,7 @@ def copy_lxbs_to_project_directory(destination_lxb_dir, scan_info):
         if i > 0 and i % 10 == 0:
             logger.debug("copying progress - working on {} out of {}".format(i, num_src_lxb_files))
 
-def make_csv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, scan_info):
+def make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, scan_info):
 
     outfile = os.path.join(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
 
@@ -116,8 +115,19 @@ def make_csv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, scan_info):
 def check_lxb_corruption():
     pass
 
-def handle_plate_no_lims_database_entry():
+def handle_plate_no_lims_database_entry(scan_info):
     pass
+
+def make_lims_database_updates(cursor, lims_plate_orm):
+    # SET FIELD IN ORM OBJECT
+    rna_plate_fields = [lims_plate_orm.pert_plate, lims_plate_orm.cell_id, lims_plate_orm.pert_time, lims_plate_orm.rep_num]
+    lims_plate_orm.rna_plate =  "_".join(rna_plate_fields)
+    lims_plate_orm.det_plate = lims_plate_orm.rna_plate + "_" + lims_plate_orm.bead_set
+    lims_plate_orm.scan_det_plate = lims_plate_orm.original_barcode + "_" + lims_plate_orm.bead_set
+
+    # USE ORM OBJECT TO UPDATE DATABASE
+    lims_plate_orm.update_in_db(cursor)
+    return lims_plate_orm
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
