@@ -61,7 +61,12 @@ class JobsOrm(object):
         cursor.execute(delete_job_statement, (self.plate_machine_barcode,))
         logger.debug(cursor.statement)
 
-    def update_jobs_queue(self, cursor):
+    def update_jobs_queue(self, cursor, queue=None, jenkins_id=None):
+        if queue is not None:
+            self.queue = queue
+        if jenkins_id is not None:
+            self.jenkins_id = jenkins_id
+
         cursor.execute(update_jobs_queue_statement, (self.queue, self.jenkins_id, self.plate_machine_barcode))
         logger.debug(cursor.statement)
 

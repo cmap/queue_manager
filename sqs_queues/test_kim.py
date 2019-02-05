@@ -2,14 +2,11 @@ import unittest
 import mock
 import logging
 
+import caldaia.utils.orm.lims_plate_orm as lpo
 
-import pestle.io.setup_logger as setup_logger
-
-
+import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.kim as kim
 import sqs_queues.queue_scan as scan
-
-import caldaia.utils.orm.lims_plate_orm as lpo
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -37,19 +34,19 @@ class TestKim(unittest.TestCase):
     @staticmethod
     def create_scan_from_archive(machine_barcode):
         OG_LPO = scan.lpo.get_by_machine_barcode
-        OG_scan_os = scan.os.path.join
+        # OG_scan_os = scan.os.path.join
         OG_scan_get_num_lxb = scan.QueueScan.get_num_lxbs_scanned
         OG_scan_done = scan.QueueScan.check_scan_done
 
         scan.lpo.get_by_machine_barcode = mock.Mock(return_value=TestKim.create_lims_plate_orm())
-        scan.os.path.join = mock.Mock(return_value='fake_lxb_path')
+        # scan.os.path.join = mock.Mock(return_value='fake_lxb_path')
         scan.QueueScan.get_num_lxbs_scanned = mock.Mock(return_value=384)
         scan.QueueScan.check_scan_done = mock.Mock(return_value=(True, 1))
 
         fake_scan = scan.QueueScan(None, "archive_path", "elapse_time", machine_barcode)
 
         scan.lpo.get_by_machine_barcode = OG_LPO
-        scan.os.path.join = OG_scan_os
+        # scan.os.path.join = OG_scan_os
         scan.QueueScan.get_num_lxbs_scanned = OG_scan_get_num_lxb
         scan.QueueScan.check_scan_done = OG_scan_done
 
@@ -129,7 +126,7 @@ class TestKim(unittest.TestCase):
         # VALIDATE GLOB
         kim.glob.glob.assert_called_once
         glob_args = kim.glob.glob.call_args_list[0]
-        self.assertEqual(glob_args, mock.call('fake_lxb_path/*.lxb'))
+        self.assertEqual(glob_args, mock.call('archive_path/lxb/det_plate*/*.lxb'))
 
         # VALIDATE COPY
         copyfile_calls = kim.shutil.copyfile.call_args_list
