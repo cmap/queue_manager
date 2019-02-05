@@ -13,6 +13,11 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 class TestKim(unittest.TestCase):
 
+    @staticmethod
+    def setup_args():
+        args = kim.build_parser().parse_args(['--data_path', 'data/path','--hostname', 'babies', '--jenkins_id', '666'])
+        # logger.debug(args)
+        return args
 
     @staticmethod
     def create_lims_plate_orm():
@@ -52,23 +57,40 @@ class TestKim(unittest.TestCase):
 
         return fake_scan
 
-    def test_setup_arguments(self):
+    def test_sift_for_viable_jobs(self):
         OG_setup_dirs = kim.setup_project_directory_structure_if_needed
+        OG_job_by_pmb = kim.jobs.get_jobs_entry_by_plate_machine_barcode
+
+        fake_job = kim.jobs.JobsOrm(plate_machine_barcode="pmb1")
         kim.setup_project_directory_structure_if_needed = mock.Mock()
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode = mock.Mock(
+            return_value =fake_job)
+        cursor = mock.Mock()
+        cursor.execute = mock.Mock()
+        cursor.statement = mock.Mock()
+
+        args = TestKim.setup_args()
 
         happy_scan = TestKim.create_scan_from_archive("machine_barcode")
-        (prj_dir, lxb_dir, dev_flag) = kim.setup_arguments("data/path", happy_scan)
+        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, cursor, happy_scan)
         self.assertEqual(prj_dir, "data/path/PRJ")
         self.assertEqual(lxb_dir, "data/path/PRJ/lxb/det_plate")
         self.assertFalse(dev_flag)
+        cursor.execute.assert_called_once
+        job_entry = cursor.execute.call_args_list[0]
+        expected_job_entry = mock.call(kim.jobs.update_jobs_queue_statement, ("kim", 666, "pmb1"))
+        self.assertEqual(job_entry, expected_job_entry)
+
+        cursor.execute.reset_mock()
 
         dev_scan = TestKim.create_scan_from_archive("DEV_plate")
         dev_scan.lims_plate_orm = None
         dev_scan.plate_search_name = "DEV_plate"
-        (prj_dir, lxb_dir, dev_flag) = kim.setup_arguments("data/path", dev_scan)
+        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, cursor, dev_scan)
         self.assertEqual(prj_dir, "data/path/DEV")
         self.assertEqual(lxb_dir, "data/path/DEV/lxb/DEV_plate")
         self.assertTrue(dev_flag)
+        cursor.execute.assert_not_called
 
         unhappy_scan = TestKim.create_scan_from_archive("no_lpo")
         unhappy_scan.lims_plate_orm = None
@@ -78,7 +100,7 @@ class TestKim(unittest.TestCase):
         kim.handle_plate_no_lims_database_entry = mock.Mock()
 
         with self.assertRaises(SystemExit):
-            kim.setup_arguments("data/path", unhappy_scan)
+            kim.sift_for_viable_jobs(args, cursor, unhappy_scan)
             kim.handle_plate_no_lims_database_entry.assert_called_once
 
         kim.handle_plate_no_lims_database_entry = OG_handler
@@ -145,9 +167,8 @@ class TestKim(unittest.TestCase):
         kim.os.system = mock.Mock(return_value=True)
 
         # SETUP ARGS AND MAKE CALL
-        (lxb2jcsv_path, destination_lxb_dir, scan) = ("lxb2jcsv/path", "destination/path",
-                                                      TestKim.create_scan_from_archive("machine_barcode"))
-        outfile = kim.make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, scan)
+        (lxb2jcsv_path, destination_lxb_dir) = ("lxb2jcsv/path", "destination/path")
+        outfile = kim.make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, "det_plate")
 
         # VALIDATE OUTPUT
         expected_outfile = "destination/path/det_plate"

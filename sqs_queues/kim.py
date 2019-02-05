@@ -47,21 +47,20 @@ def main(args):
         if messages is not None:
             for message in messages:
                 scan_info = qscan.QueueScan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
-                (destination_project_dir, destination_lxb_dir, is_dev) = setup_arguments(args, cursor, scan_info)
+                (destination_project_dir, destination_lxb_dir, is_dev) = sift_for_viable_jobs(args, cursor, scan_info)
                 copy_lxbs_to_project_directory(destination_lxb_dir, scan_info)
 
                 if is_dev:
-
+                    # DEV PLATES MOVED TO DEV PROJECT DIR WITHOUT RENAME; NO ENTRY IN LIMS TO UPDATE
                     make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.plate_search_name)
 
                 else:
-                    make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
-                    # DEV PLATES DO NOT REQUIRE THESE CHANGES
-                    rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
                     make_lims_database_updates(cursor, scan_info.lims_plate_orm)
+                    make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
+                    rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
 
 
-def setup_arguments(args, cursor, scan_info):
+def sift_for_viable_jobs(args, cursor, scan_info):
     is_dev = False
 
     # LPO IS REQUIRED FOR KIM TO KNOW DESTINATION PATH
@@ -78,8 +77,10 @@ def setup_arguments(args, cursor, scan_info):
         if args.jenkins_id is not None:
             # UPDATE JOB TABLE WITH JENKINS_ID
             job = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, scan_info.lims_plate_orm.machine_barcode)
-            job.update_jobs_queue(cursor, queue="kim", jenkins_id=args.jenkins_id)
-
+            if job is not None:
+                job.update_jobs_queue(cursor, queue="kim", jenkins_id=args.jenkins_id)
+            else:
+                job = jobs.JobsOrm()
         destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
         destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
