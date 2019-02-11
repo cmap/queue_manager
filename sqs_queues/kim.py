@@ -22,6 +22,8 @@ import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.queue_scan as qscan
 import sqs_queues.sqs_utils as sqs_utils
 import sqs_queues.jobs_orm as jobs
+import sqs_queues.exceptions as qmExceptions
+
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 
@@ -35,7 +37,6 @@ def build_parser():
 def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
-
 
     cp = ConfigParser.ConfigParser()
     if os.path.exists(args.queue_manager_config_filepath):
@@ -58,7 +59,9 @@ def main(args):
                     make_lims_database_updates(cursor, scan_info.lims_plate_orm)
                     make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
                     rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
-
+    else:
+        raise qmExceptions.NoConfigFileExistsAtGivenLocation(
+            "Invalid Config Location: {}".format(args.queue_manager_config_filepath))
 
 def sift_for_viable_jobs(args, cursor, scan_info):
     is_dev = False
@@ -71,22 +74,29 @@ def sift_for_viable_jobs(args, cursor, scan_info):
             destination_project_dir = os.path.join(args.data_path, "DEV")
             destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.plate_search_name)
         else:
-            handle_plate_no_lims_database_entry(scan_info)
+            logger.info("The following plate : {} is not viable for processing".format(scan_info.plate_search_name))
             sys.exit(666)
     else:
         if args.jenkins_id is not None:
             # UPDATE JOB TABLE WITH JENKINS_ID
-            job = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, scan_info.lims_plate_orm.machine_barcode)
-            if job is not None:
-                job.update_jobs_queue(cursor, queue="kim", jenkins_id=args.jenkins_id)
-            else:
-                job = jobs.JobsOrm()
+           update_or_create_job_entry(cursor, scan_info.lims_plate_orm.machine_barcode)
+
         destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
         destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
         setup_project_directory_structure_if_needed(destination_project_dir)
 
     return (destination_project_dir, destination_lxb_dir, is_dev)
+
+
+def update_or_create_job_entry(cursor, machine_barcode):
+    job = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, machine_barcode)
+    if job is not None:
+        job.update_jobs_queue(cursor, queue="kim", jenkins_id=args.jenkins_id)
+    else:
+        job = jobs.JobsOrm(plate_machine_barcode=machine_barcode, queue="kim", jenkins_id=args.jenkins_id)
+        job.create_entry_in_db(cursor)
+
 
 def setup_project_directory_structure_if_needed(destination_project_dir):
     # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
@@ -119,16 +129,11 @@ def make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, filename):
         logger.info("cmd:  {}".format(cmd))
         retval = os.system(cmd)
         logger.info('lxb2jcsv returned {}'.format(retval))
+
     except Exception as e:
         logger.exception("failed to make_csv.  stacktrace:  ")
 
     return outfile
-
-def check_lxb_corruption():
-    pass
-
-def handle_plate_no_lims_database_entry(scan_info):
-    pass
 
 def make_lims_database_updates(cursor, lims_plate_orm):
     # SET FIELD IN ORM OBJECT

@@ -83,6 +83,7 @@ class TestKim(unittest.TestCase):
 
         cursor.execute.reset_mock()
 
+        # DEV plate condition
         dev_scan = TestKim.create_scan_from_archive("DEV_plate")
         dev_scan.lims_plate_orm = None
         dev_scan.plate_search_name = "DEV_plate"
@@ -92,19 +93,52 @@ class TestKim(unittest.TestCase):
         self.assertTrue(dev_flag)
         cursor.execute.assert_not_called
 
+
+        # no lims_plate_orm, not DEV plate condition
         unhappy_scan = TestKim.create_scan_from_archive("no_lpo")
         unhappy_scan.lims_plate_orm = None
 
-        # SET UP MOCK
-        OG_handler = kim.handle_plate_no_lims_database_entry
-        kim.handle_plate_no_lims_database_entry = mock.Mock()
-
         with self.assertRaises(SystemExit):
             kim.sift_for_viable_jobs(args, cursor, unhappy_scan)
-            kim.handle_plate_no_lims_database_entry.assert_called_once
 
-        kim.handle_plate_no_lims_database_entry = OG_handler
         kim.setup_project_directory_structure_if_needed = OG_setup_dirs
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode = OG_job_by_pmb
+
+    def test_update_or_create_job_entry(self):
+        OG_job_by_pmb = kim.jobs.get_jobs_entry_by_plate_machine_barcode
+
+        args = TestKim.setup_args()
+        cursor = mock.Mock()
+        cursor.execute = mock.Mock()
+        cursor.statement = mock.Mock()
+
+        # TEST UPDATE PATH
+        mb = "pmb1"
+        fake_job = kim.jobs.JobsOrm(plate_machine_barcode=mb)
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode = mock.Mock(
+            return_value =fake_job)
+
+        kim.update_or_create_job_entry(cursor, mb, args.jenkins_id)
+        cursor.execute.assert_called_once
+        job_entry = cursor.execute.call_args_list[0]
+        expected_job_entry = mock.call(kim.jobs.update_jobs_queue_statement, ("kim", 666, "pmb1"))
+        self.assertEqual(job_entry, expected_job_entry)
+
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode.reset_mock()
+        cursor.reset_mock()
+        cursor.execute.reset_mock()
+
+        # TEST CREATE PATH
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode.return_value = None
+
+        kim.update_or_create_job_entry(cursor, mb, args.jenkins_id)
+        cursor.execute.assert_called_once()
+        job_entry = cursor.execute.call_args_list[0]
+        expected_job_entry = mock.call(kim.jobs.insert_jobs_statement, (mb, "kim", 666, None))
+        self.assertEqual(job_entry, expected_job_entry)
+
+        kim.jobs.get_jobs_entry_by_plate_machine_barcode = OG_job_by_pmb
+
 
     def test_setup_project_directory_structure_if_needed(self):
         OG_p_exists = kim.os.path.exists

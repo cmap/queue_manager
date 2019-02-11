@@ -18,9 +18,11 @@ import pestle.io.setup_logger as setup_logger
 import sqs_queues.queue_scan as qscan
 import sqs_queues.sqs_utils as sqs_utils
 import sqs_queues.jobs_orm as jobs
+import sqs_queues.exceptions as qmExceptions
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
+unlinked_plate_insert_statement = "INSERT INTO unlinked_plate (unknown_barcode, status) VALUES (%s, %s)"
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -49,19 +51,24 @@ def main(args):
             for message in messages:
                 check_scan_done(args, cursor, message, kim_queue)
     else :
-        #todo;
-        Exception("babies")
+        raise qmExceptions.NoConfigFileExistsAtGivenLocation("Invalid Config Location: {}".format(args.queue_manager_config_filepath))
 
 def check_scan_done(args, cursor, message, kim_queue_config):
     # NB all args added with config_tools have type str
     plate_info = qscan.QueueScan(cursor, args.archive_path, int(args.scan_done_elapsed_time), machine_barcode=message.machine_barcode)
-    if plate_info.lims_plate_orm and args.jenkins_id is not None:
-        job = jobs.JobsOrm(plate_machine_barcode=plate_info.lims_plate_orm.machine_barcode, queue="yeezy", jenkins_id=args.jenkins_id)
-        job.create_entry_in_db(cursor)
 
-    if plate_info.scan_done:
-        message.pass_to_next_queue(kim_queue_config)
-        return True
+    if plate_info.lims_plate_orm:
+        if args.jenkins_id is not None:
+            job = jobs.JobsOrm(plate_machine_barcode=plate_info.lims_plate_orm.machine_barcode, queue="yeezy", jenkins_id=args.jenkins_id)
+            job.create_entry_in_db(cursor)
+
+        if plate_info.scan_done:
+            message.pass_to_next_queue(kim_queue_config)
+            return True
+
+    else:
+        cursor.execute(unlinked_plate_insert_statement, (plate_info.plate_search_name, "unresolved"))
+        sqs_utils.consume_message_from_sqs_queue(message)
 
     return False
 

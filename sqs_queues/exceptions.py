@@ -1,0 +1,2 @@
+class NoConfigFileExistsAtGivenLocation(Exception):
+    pass
