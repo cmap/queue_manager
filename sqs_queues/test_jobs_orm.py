@@ -1,4 +1,5 @@
 import unittest
+import mock
 import logging
 
 import caldaia.utils
@@ -36,7 +37,7 @@ class TestJobsOrm(unittest.TestCase):
     @staticmethod
     def create_test_jobs_orm(pmb=test_pmb, queue=test_queue, j_id=test_jenkins_id, flag=test_flag):
         cursor = db.cursor()
-        j = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, test_pmb)
+        j = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, pmb)
         if j is not None:
             j.remove_entry_in_db(cursor)
 
@@ -206,6 +207,42 @@ class TestJobsOrm(unittest.TestCase):
 
 
         cursor.close()
+
+    def test_update_or_create_job_entry(self):
+        # SET UP
+        cursor = db.cursor()
+        OG_get_jobs = jobs.get_jobs_entry_by_plate_machine_barcode
+        OG_update_jobs = jobs.JobsOrm.update_jobs_queue
+        OG_create = jobs.JobsOrm.create_entry_in_db
+
+        jobs.JobsOrm.update_jobs_queue = mock.Mock()
+
+        # JOB ENTRY EXISTS --> UPDATE
+        test_job_orm = TestJobsOrm.create_test_jobs_orm()
+        id = test_job_orm.create_entry_in_db(cursor)
+
+        jobs.get_jobs_entry_by_plate_machine_barcode = mock.Mock(return_value=test_job_orm)
+        jobs.JobsOrm.create_entry_in_db = mock.Mock()
+
+        jobs.update_or_create_job_entry(cursor, test_pmb, test_queue, test_jenkins_id)
+        jobs.get_jobs_entry_by_plate_machine_barcode.assert_called_once
+        jobs.JobsOrm.update_jobs_queue.assert_called_once
+        jobs.JobsOrm.create_entry_in_db.assert_not_called
+
+        #JOB ENTRY D.N.E. --> CREATE
+        jobs.get_jobs_entry_by_plate_machine_barcode.reset_mock()
+        jobs.JobsOrm.update_jobs_queue.reset_mock()
+        test_job_orm.remove_entry_in_db(cursor)
+
+        jobs.update_or_create_job_entry(cursor, test_pmb, test_queue, test_jenkins_id)
+        jobs.get_jobs_entry_by_plate_machine_barcode.assert_called_once
+        jobs.JobsOrm.update_jobs_queue.assert_not_called
+        jobs.JobsOrm.create_entry_in_db.assert_called_once
+
+        cursor.close()
+        jobs.get_jobs_entry_by_plate_machine_barcode = OG_get_jobs
+        jobs.JobsOrm.update_jobs_queue = OG_update_jobs
+        jobs.JobsOrm.create_entry_in_db = OG_create
 
     def test_get_jobs_entry_by_plate_machine_barcode(self):
         # SET UP

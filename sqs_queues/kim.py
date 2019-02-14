@@ -79,7 +79,7 @@ def sift_for_viable_jobs(args, cursor, scan_info):
     else:
         if args.jenkins_id is not None:
             # UPDATE JOB TABLE WITH JENKINS_ID
-           update_or_create_job_entry(cursor, scan_info.lims_plate_orm.machine_barcode, args.jenkins_id)
+           jobs.update_or_create_job_entry(cursor, machine_barcode=scan_info.lims_plate_orm.machine_barcode, queue="kim", jenkins_id=args.jenkins_id)
 
         destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
         destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
@@ -87,16 +87,6 @@ def sift_for_viable_jobs(args, cursor, scan_info):
         setup_project_directory_structure_if_needed(destination_project_dir)
 
     return (destination_project_dir, destination_lxb_dir, is_dev)
-
-
-def update_or_create_job_entry(cursor, machine_barcode, jenkins_id):
-    job = jobs.get_jobs_entry_by_plate_machine_barcode(cursor, machine_barcode)
-    if job is not None:
-        job.update_jobs_queue(cursor, queue="kim", jenkins_id=jenkins_id)
-    else:
-        job = jobs.JobsOrm(plate_machine_barcode=machine_barcode, queue="kim", jenkins_id=jenkins_id)
-        job.create_entry_in_db(cursor)
-
 
 def setup_project_directory_structure_if_needed(destination_project_dir):
     # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
