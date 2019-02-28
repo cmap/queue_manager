@@ -15,12 +15,12 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 class ScanInfo(object):
     def __init__(self, cursor, archive_path, machine_barcode):
-
+        self.cursor = cursor
         self.archive_path = archive_path
         self.lxb_path = None
         self.num_lxbs_scanned = None
 
-        self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
+        self.lims_plate_orm = lpo.get_by_machine_barcode(self.cursor, machine_barcode)
 
         if self.lims_plate_orm:
             self.plate_search_name = self.lims_plate_orm.det_plate

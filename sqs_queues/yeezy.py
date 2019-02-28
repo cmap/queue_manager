@@ -76,8 +76,9 @@ class Yeezy(ScanInfo):
         return (is_scan_done, elapsed_time)
 
     def execute_command(self):
-        if self.scan_done is False:
-           raise Exception
+        if self.scan_done:
+            return True
+        return False
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
