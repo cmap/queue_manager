@@ -85,6 +85,7 @@ def update_or_create_job_entry(cursor, machine_barcode, queue, jenkins_id):
     else:
         job = JobsOrm(plate_machine_barcode=machine_barcode, queue=queue, jenkins_id=jenkins_id)
         job.create_entry_in_db(cursor)
+    return job
 
 
 def get_jobs_entry_by_plate_machine_barcode(cursor, plate_machine_barcode):

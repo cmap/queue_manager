@@ -34,10 +34,13 @@ def send_message_to_sqs_queue(queue_url, message_body, tag):
         print "{}: Successfully sent {} message to {}".format(status, message_body, queue_url.rsplit("/", 1)[1])
 
 
-def receive_messages_from_sqs_queue(queue_url):
+def receive_many_messages_from_sqs_queue(queue_url, atmost):
     SQS = boto3.client('sqs')
+    if atmost == 1:
+        return receive_message_from_sqs_queue(queue_url)
 
-    response = SQS.receive_message(QueueUrl=queue_url)
+
+    response = SQS.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=atmost)
 
     if response['Messages']:
         status = response['ResponseMetadata']['HTTPStatusCode']
@@ -53,6 +56,16 @@ def receive_messages_from_sqs_queue(queue_url):
         print "No messages to receive in {} queue".format(queue_url.rsplit("/",1)[1])
         return None
 
+def receive_message_from_sqs_queue(queue_url):
+    SQS = boto3.client('sqs')
+
+    response = SQS.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
+
+    if response['Messages']:
+        m = Message(response['Messages'][0], queue_url)
+        return m
+
+    return None
 
 def consume_message_from_sqs_queue(message):
     SQS = boto3.client('sqs')

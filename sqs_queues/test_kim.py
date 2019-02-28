@@ -6,7 +6,7 @@ import caldaia.utils.orm.lims_plate_orm as lpo
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.kim as kim
-import sqs_queues.queue_scan as scan
+import sqs_queues.ScanInfo as scan
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -15,7 +15,7 @@ class TestKim(unittest.TestCase):
 
     @staticmethod
     def setup_args():
-        args = kim.build_parser().parse_args(['--data_path', 'data/path','--hostname', 'babies', '--jenkins_id', '666'])
+        args = kim.build_parser().parse_args(['--data_path', 'data/path','--hostname', 'babies', '-machine_barcode', '24'])
         # logger.debug(args)
         return args
 
@@ -40,20 +40,20 @@ class TestKim(unittest.TestCase):
     def create_scan_from_archive(machine_barcode):
         OG_LPO = scan.lpo.get_by_machine_barcode
         # OG_scan_os = scan.os.path.join
-        OG_scan_get_num_lxb = scan.QueueScan.get_num_lxbs_scanned
-        OG_scan_done = scan.QueueScan.check_scan_done
+        OG_scan_get_num_lxb = scan.ScanInfo.get_num_lxbs_scanned
+        OG_scan_done = scan.ScanInfo.check_scan_done
 
         scan.lpo.get_by_machine_barcode = mock.Mock(return_value=TestKim.create_lims_plate_orm())
         # scan.os.path.join = mock.Mock(return_value='fake_lxb_path')
-        scan.QueueScan.get_num_lxbs_scanned = mock.Mock(return_value=384)
-        scan.QueueScan.check_scan_done = mock.Mock(return_value=(True, 1))
+        scan.ScanInfo.get_num_lxbs_scanned = mock.Mock(return_value=384)
+        scan.ScanInfo.check_scan_done = mock.Mock(return_value=(True, 1))
 
-        fake_scan = scan.QueueScan(None, "archive_path", "elapse_time", machine_barcode)
+        fake_scan = scan.ScanInfo(None, "archive_path", "elapse_time", machine_barcode)
 
         scan.lpo.get_by_machine_barcode = OG_LPO
         # scan.os.path.join = OG_scan_os
-        scan.QueueScan.get_num_lxbs_scanned = OG_scan_get_num_lxb
-        scan.QueueScan.check_scan_done = OG_scan_done
+        scan.ScanInfo.get_num_lxbs_scanned = OG_scan_get_num_lxb
+        scan.ScanInfo.check_scan_done = OG_scan_done
 
         return fake_scan
 
@@ -72,34 +72,28 @@ class TestKim(unittest.TestCase):
         args = TestKim.setup_args()
 
         happy_scan = TestKim.create_scan_from_archive("machine_barcode")
-        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, cursor, happy_scan)
+        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, happy_scan)
         self.assertEqual(prj_dir, "data/path/PRJ")
         self.assertEqual(lxb_dir, "data/path/PRJ/lxb/det_plate")
         self.assertFalse(dev_flag)
-        cursor.execute.assert_called_once
-        job_entry = cursor.execute.call_args_list[0]
-        expected_job_entry = mock.call(kim.jobs.update_jobs_queue_statement, ("kim", 666, "pmb1"))
-        self.assertEqual(job_entry, expected_job_entry)
 
-        cursor.execute.reset_mock()
 
         # DEV plate condition
         dev_scan = TestKim.create_scan_from_archive("DEV_plate")
         dev_scan.lims_plate_orm = None
         dev_scan.plate_search_name = "DEV_plate"
-        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, cursor, dev_scan)
+        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, dev_scan)
         self.assertEqual(prj_dir, "data/path/DEV")
         self.assertEqual(lxb_dir, "data/path/DEV/lxb/DEV_plate")
         self.assertTrue(dev_flag)
-        cursor.execute.assert_not_called
 
 
         # no lims_plate_orm, not DEV plate condition
         unhappy_scan = TestKim.create_scan_from_archive("no_lpo")
         unhappy_scan.lims_plate_orm = None
 
-        with self.assertRaises(SystemExit):
-            kim.sift_for_viable_jobs(args, cursor, unhappy_scan)
+        with self.assertRaises(kim.qmExceptions.PlateCannotBeProcessed):
+            kim.sift_for_viable_jobs(args, unhappy_scan)
 
         kim.setup_project_directory_structure_if_needed = OG_setup_dirs
         kim.jobs.get_jobs_entry_by_plate_machine_barcode = OG_job_by_pmb
@@ -191,7 +185,9 @@ class TestKim(unittest.TestCase):
         self.assertEqual(updated_entry.det_plate, 'pertPlate_cellId_pertTime_repNum_beadSet')
         self.assertEqual(updated_entry.scan_det_plate, 'original_barcode_beadSet')
 
-
+        #todo reminder
+        cursor_call = cursor.execute.call_args_list[0]
+        logger.warning("add test for cursor.statement {}".format(cursor_call))
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

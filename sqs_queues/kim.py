@@ -19,7 +19,7 @@ import caldaia.utils.config_tools as config_tools
 import pestle.data_ninja.lims.rename_plate_files as rpf
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
-import sqs_queues.queue_scan as qscan
+import sqs_queues.ScanInfo as qscan
 import sqs_queues.sqs_utils as sqs_utils
 import sqs_queues.jobs_orm as jobs
 import sqs_queues.exceptions as qmExceptions
@@ -29,7 +29,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--jenkins_id", help='build number passed in from jenkins', type=int, required=False, default=None)
+    parser.add_argument('-machine_barcode', required=True)
     config_tools.add_config_file_options_to_parser(parser)
     config_tools.add_options_to_override_config(parser, ['lxb2jcsv_path','hostname', 'archive_path', 'queue_manager_config_filepath', 'data_path'])
     return parser
@@ -38,49 +38,33 @@ def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    cp = ConfigParser.ConfigParser()
-    if os.path.exists(args.queue_manager_config_filepath):
+    scan_info = qscan.ScanInfo(cursor, args.archive_path, machine_barcode=args.machine_barcode)
+    (destination_project_dir, destination_lxb_dir, is_dev) = sift_for_viable_jobs(args, scan_info)
+    copy_lxbs_to_project_directory(destination_lxb_dir, scan_info)
 
-        cp.read(args.queue_manager_config_filepath)
-        kim_queue = dict(cp.items("kim"))
-        messages = sqs_utils.receive_messages_from_sqs_queue(kim_queue['queue_url'])
+    if is_dev:
+        # DEV PLATES MOVED TO DEV PROJECT DIR WITHOUT RENAME; NO ENTRY IN LIMS TO UPDATE
+        make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.plate_search_name)
 
-        if messages is not None:
-            for message in messages:
-                scan_info = qscan.QueueScan(cursor, args.archive_path, args.scan_done_elapsed_time, machine_barcode=message.machine_barcode)
-                (destination_project_dir, destination_lxb_dir, is_dev) = sift_for_viable_jobs(args, cursor, scan_info)
-                copy_lxbs_to_project_directory(destination_lxb_dir, scan_info)
-
-                if is_dev:
-                    # DEV PLATES MOVED TO DEV PROJECT DIR WITHOUT RENAME; NO ENTRY IN LIMS TO UPDATE
-                    make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.plate_search_name)
-
-                else:
-                    make_lims_database_updates(cursor, scan_info.lims_plate_orm)
-                    make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
-                    rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
     else:
-        raise qmExceptions.NoConfigFileExistsAtGivenLocation(
-            "Invalid Config Location: {}".format(args.queue_manager_config_filepath))
+        make_lims_database_updates(cursor, scan_info.lims_plate_orm)
+        make_jcsv_in_lxb_directory(destination_lxb_dir, scan_info.lims_plate_orm.det_plate)
+        rpf.rename_files(scan_info.lims_plate_orm.det_plate, destination_lxb_dir)
 
-def sift_for_viable_jobs(args, cursor, scan_info):
+def sift_for_viable_jobs(args, scan_info):
     is_dev = False
-
     # LPO IS REQUIRED FOR KIM TO KNOW DESTINATION PATH
     if scan_info.lims_plate_orm is None:
-        # EXCEPTION MADE FOR DEV PLATES, WHICH ARE NOT REGISTERED IN LIMS
+        # EXCEPTION MADE FOR DEV PLATES, WHICH ARE NOT REGISTERED IN LIMS, BUT HAVE KNOWN PROJECT
         if scan_info.plate_search_name.startswith("DEV"):
             is_dev = True
             destination_project_dir = os.path.join(args.data_path, "DEV")
             destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.plate_search_name)
         else:
-            logger.info("The following plate : {} is not viable for processing".format(scan_info.plate_search_name))
-            sys.exit(666)
+            msg = "The following plate : {} is not viable for processing".format(scan_info.plate_search_name)
+            logger.info(msg)
+            raise qmExceptions.PlateCannotBeProcessed(msg)
     else:
-        if args.jenkins_id is not None:
-            # UPDATE JOB TABLE WITH JENKINS_ID
-           jobs.update_or_create_job_entry(cursor, machine_barcode=scan_info.lims_plate_orm.machine_barcode, queue="kim", jenkins_id=args.jenkins_id)
-
         destination_project_dir = os.path.join(args.data_path, scan_info.lims_plate_orm.project_code)
         destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', scan_info.lims_plate_orm.det_plate)
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
@@ -122,6 +106,7 @@ def make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, filename):
 
     except Exception as e:
         logger.exception("failed to make_csv.  stacktrace:  ")
+        raise qmExceptions.FailureOccuredDuringProcessing(e)
 
     return outfile
 
