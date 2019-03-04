@@ -3,12 +3,11 @@ class to describe an active scan
 '''
 
 import os
-import sys
 import glob
 import time
 import logging
-import pestle.io.setup_logger as setup_logger
 
+import broadinstitute.queue_manager.setup_logger as setup_logger
 import caldaia.utils.orm.lims_plate_orm as lpo
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -34,12 +33,12 @@ class ScanInfo(object):
         return " ".join(["{}:{}".format(k, v) for (k, v) in self.__dict__.items()])
 
     def get_num_lxbs_scanned(self):
-        '''
-        return the number of lxbs scanned for the plate
-        '''
+        # GET THE NUMBER OF LXBS IN THE ARCHIVE DIRECTORY
+
         return len(glob.glob(os.path.join(self.lxb_path, '*.lxb')))
 
     def check_last_lxb_addition(self):
+        # GET THE AMOUNT OF TIME ELAPSED BETWEEN THE LAST LXB ADDED TO ARCHIVE DIRECTORY AND NOW
         lxb_files = glob.glob(os.path.join(self.lxb_path, '*'))
         now = time.time()
         try:
