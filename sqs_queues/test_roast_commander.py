@@ -7,7 +7,7 @@ import broadinstitute.queue_manager.setup_logger as setup_logger
 import caldaia.utils.orm.lims_plate_orm as lpo
 import caldaia.utils.config_tools as config_tools
 
-import sqs_queues.roast_commander as rc
+import sqs_queues.roastcommander as rc
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -76,8 +76,13 @@ class TestRoastCommander(unittest.TestCase):
                             'parallel', true); quit" < /dev/null"""
         self.assertEqual(test_rc.command, expected_command)
 
-    def test_main(self):
-        pass
+    def test_make_job(self):
+        args = TestRoastCommander.build_args(test_barcode)
+        RC = rc.make_job(args)
+        expected_fields = ["base_path", "espresso_path", "plate", "command", "lims_plate_orm", "project_directory",
+                           "map_dir_path", "lxb_dir_path", "roast_dir_path"]
+        for field in expected_fields:
+            self.assertIsNotNone(getattr(RC, field))
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

@@ -130,6 +130,21 @@ class TestYeezy(unittest.TestCase):
         yeezy.Yeezy.get_num_lxbs_scanned.assert_called_once()
         yeezy.Yeezy.check_last_lxb_addition.assert_called_once()
 
+    def test_make_job(self):
+        args = TestYeezy.build_args()
+        Yeezy = yeezy.make_job(args)
+        expected_fields = ["cursor", "archive_path", "lxb_path", "num_lxbs_scanned", "lims_plate_orm",
+                           "plate_search_name",
+                           "scan_done_elapsed_time"]
+
+        init_none_fields = ["elapsed_time", "scan_done"]
+
+        for field in expected_fields:
+            self.assertIsNotNone(getattr(Yeezy, field))
+
+        for field in init_none_fields:
+            self.assertIsNone(getattr(Yeezy, field))
+
     def test_happy_execute_command(self):
         (testYeezy, args) = TestYeezy.common_setup_Yeezy(200, 86401)
         response = testYeezy.execute_command()
@@ -139,6 +154,8 @@ class TestYeezy(unittest.TestCase):
         (testYeezy, args) = TestYeezy.common_setup_Yeezy(200, 1)
         with self.assertRaises(yeezy.qmExceptions.YeezyReportsScanNotDone):
             testYeezy.execute_command()
+
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)

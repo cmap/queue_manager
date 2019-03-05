@@ -39,6 +39,11 @@ def main(args):
     this = Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
     this.execute_command()
 
+def make_job(args):
+    db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
+    cursor = db.cursor()
+
+    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
 
 class Kim(si.ScanInfo):
     def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode):

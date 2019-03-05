@@ -36,6 +36,13 @@ def main(args):
     this = RoastCommander(cursor, args.data_path, args.espresso_path, args.machine_barcode)
     this.execute_command()
 
+def make_job(args):
+    db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
+    cursor = db.cursor()
+
+    return RoastCommander(cursor, args.data_path, args.espresso_path, args.machine_barcode)
+
+
 class RoastCommander(CommanderTemplate):
     def __init__(self, cursor, base_path, espresso_path, machine_barcode):
         super(RoastCommander, self).__init__(base_path, espresso_path)

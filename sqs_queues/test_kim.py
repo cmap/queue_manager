@@ -34,7 +34,7 @@ class TestKim(unittest.TestCase):
         kim.Kim.check_last_lxb_addition = OG_scan_last_lxb
 
     @staticmethod
-    def setup_args(machine_barcode):
+    def build_args(machine_barcode):
         args = kim.build_parser().parse_args(['-machine_barcode', machine_barcode])
         config_tools.add_config_file_settings_to_args(args)
         return args
@@ -59,7 +59,7 @@ class TestKim(unittest.TestCase):
 
     @staticmethod
     def common_setup_kim(machine_barcode):
-        args = TestKim.setup_args(machine_barcode)
+        args = TestKim.build_args(machine_barcode)
         cursor = mock.Mock()
 
         test = kim.Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
@@ -203,6 +203,17 @@ class TestKim(unittest.TestCase):
         #todo reminder
         cursor_call = cursor.execute.call_args_list[0]
         logger.warning("add test for cursor.statement {}".format(cursor_call))
+
+    def test_make_job(self):
+        args = TestKim.build_args(test_barcode)
+        Kim = kim.make_job(args)
+        expected_fields = ["cursor", "archive_path", "lxb_path", "num_lxbs_scanned", "lims_plate_orm",
+                           "plate_search_name", "base_data_path", "lxb2jcsv_path", "is_dev",
+                           "destination_project_dir", "destination_lxb_dir"]
+
+
+        for field in expected_fields:
+            self.assertIsNotNone(getattr(Kim, field))
 
     def test_execute_command(self):
         pass

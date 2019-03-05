@@ -36,6 +36,12 @@ def main(args):
     this = Yeezy(cursor, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
     this.execute_command()
 
+def make_job(args):
+    db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
+    cursor = db.cursor()
+
+    return Yeezy(cursor, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
+
 class Yeezy(si.ScanInfo):
     def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode):
         super(Yeezy, self).__init__(cursor, archive_path, machine_barcode)

@@ -9,6 +9,9 @@ class CommanderTemplate(object):
         self.plate = None
         self.command = None
 
+    def __str__(self):
+        return " ".join(["{}:{}".format(k, v) for (k, v) in self.__dict__.items()])
+
     def execute_command(self):
         try:
             subprocess.check_call(self.command)
