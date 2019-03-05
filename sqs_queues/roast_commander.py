@@ -21,7 +21,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     config_tools.add_config_file_options_to_parser(parser)
-    config_tools.add_options_to_override_config(parser, ['hostname', 'archive_path', 'scan_done_elapsed_time',
+    config_tools.add_options_to_override_config(parser, ['hostname', 'data_path', 'scan_done_elapsed_time',
                                                          'queue_manager_config_filepath'])
 
     parser.add_argument('-machine_barcode')
@@ -33,23 +33,21 @@ def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    lims_plate_orm = lpo.get_by_machine_barcode(cursor, args.machine_barcode)
-
-    this = RoastCommander(lims_plate_orm, args.archive_path, args.espresso_path)
+    this = RoastCommander(cursor, args.data_path, args.espresso_path, args.machine_barcode)
     this.execute_command()
 
 class RoastCommander(CommanderTemplate):
-    def __init__(self, lims_plate_orm, base_path, espresso_path):
-        CommanderTemplate.__init__(base_path, espresso_path)
-        self.lims_plate_orm = lims_plate_orm
-        self.plate = lims_plate_orm.det_plate
+    def __init__(self, cursor, base_path, espresso_path, machine_barcode):
+        super(RoastCommander, self).__init__(base_path, espresso_path)
+        self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
+        self.plate = self.lims_plate_orm.det_plate
 
         self._build_paths()
         self.command = self._build_command()
 
     def _build_paths(self):
         self.project_directory = os.path.join(self.base_path, self.lims_plate_orm.project_code)
-        self.map_dir_path = os.path.join(self.base_path)
+        self.map_dir_path = os.path.join(self.base_path, 'map_src')
         self.lxb_dir_path = os.path.join(self.project_directory, 'lxb', self.plate)
         self.roast_dir_path = os.path.join(self.project_directory, 'roast')
 
@@ -62,7 +60,7 @@ class RoastCommander(CommanderTemplate):
                             'raw_path', '{}',
                             'parallel', true)""".format(self.plate, self.roast_dir_path,
                                                         self.map_dir_path, self.lxb_dir_path)
-        full_cmd = 'nohup matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null &'
+        full_cmd = 'nohup matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
         return full_cmd
 
 

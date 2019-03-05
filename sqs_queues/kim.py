@@ -19,7 +19,7 @@ import caldaia.utils.config_tools as config_tools
 import pestle.data_ninja.lims.rename_plate_files as rpf
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
-from sqs_queues.ScanInfo import ScanInfo
+import sqs_queues.ScanInfo as si
 import sqs_queues.exceptions as qmExceptions
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -40,18 +40,19 @@ def main(args):
     this.execute_command()
 
 
-class Kim(ScanInfo):
+class Kim(si.ScanInfo):
     def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode):
-        ScanInfo.__init__(cursor, archive_path, machine_barcode)
+        super(Kim, self).__init__(cursor, archive_path, machine_barcode)
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
         self.is_dev = self.check_for_dev()
         (self.destination_project_dir, self.destination_lxb_dir) = self.set_destination_dirs()
 
     def check_for_dev(self):
+        if self.lims_plate_orm is not None:
+            return False
         if self.plate_search_name.startswith("DEV"):
-            self.is_dev = True
-
+            return True
         else:
             msg = "The following plate : {} is not viable for processing".format(self.plate_search_name)
             raise qmExceptions.PlateCannotBeProcessed(msg)
@@ -63,8 +64,6 @@ class Kim(ScanInfo):
         else:
             destination_project_dir = os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
             destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
-            # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
-            self.setup_project_directory_structure_if_needed()
 
         return (destination_project_dir, destination_lxb_dir)
 
@@ -74,9 +73,10 @@ class Kim(ScanInfo):
             os.mkdir(self.destination_project_dir)
             for subdir in ['lxb', 'map_src', 'maps', 'roast', 'brew', 'cup']:
                 os.mkdir(os.path.join(self.destination_project_dir, subdir))
-
+            return True
+        return False
     def _num_lxbs_at_destination(self):
-        return True
+        return len(glob.glob(os.path.join(self.destination_lxb_dir, self.lims_plate_orm.det_plate, '*.lxb'))) > 0
 
     def copy_lxbs_to_project_directory(self):
         # MOVE ALL LXBs FROM ARCHIVE LOCATION
@@ -95,7 +95,7 @@ class Kim(ScanInfo):
         return True
 
     def _jcsv_at_destination(self):
-        pass
+        return os.path.exists(os.path.join(self.destination_lxb_dir, self.lims_plate_orm.det_plate, "*.jcsv"))
 
     def make_jcsv_in_lxb_directory(self):
         filename = self.plate_search_name + ".jcsv"
@@ -111,7 +111,7 @@ class Kim(ScanInfo):
             logger.exception("failed to make_csv.  stacktrace:  ")
             raise qmExceptions.FailureOccuredDuringProcessing(e)
 
-        return True
+        return outfile
 
     def make_lims_database_updates(self):
         # SET FIELD IN ORM OBJECT
@@ -127,6 +127,8 @@ class Kim(ScanInfo):
         return self.lims_plate_orm
 
     def execute_command(self):
+        # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
+        self.created_project_dir = self.setup_project_directory_structure_if_needed()
         self.moved_lxbs = self.copy_lxbs_to_project_directory() if self._num_lxbs_at_destination() < self.num_lxbs_scanned else False
         self.made_jcsv = self.make_jcsv_in_lxb_directory() if self._jcsv_at_destination() is False else False
         if self.moved_lxbs and self.made_jcsv:

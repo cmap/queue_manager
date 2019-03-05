@@ -1,26 +1,47 @@
+import os
 import unittest
 import mock
 import logging
 
 import caldaia.utils.orm.lims_plate_orm as lpo
+import caldaia.utils.config_tools as config_tools
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.kim as kim
-import sqs_queues.ScanInfo as scan
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
+OG_LPO_get = kim.si.lpo.get_by_machine_barcode
+OG_scan_num_lxbs = kim.Kim.get_num_lxbs_scanned
+OG_scan_last_lxb = kim.Kim.check_last_lxb_addition
 
+test_barcode = 'test_barcode'
 
 class TestKim(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        kim.si.lpo.get_by_machine_barcode = mock.Mock()
+        kim.Kim.get_num_lxbs_scanned = mock.Mock()
+        kim.Kim.check_last_lxb_addition = mock.Mock()
+
+    def setUp(self):
+        kim.si.lpo.get_by_machine_barcode.return_value = TestKim.create_lims_plate_orm()
+
+    @classmethod
+    def tearDownClass(cls):
+        kim.si.lpo.get_by_machine_barcode = OG_LPO_get
+        kim.Kim.get_num_lxbs_scanned = OG_scan_num_lxbs
+        kim.Kim.check_last_lxb_addition = OG_scan_last_lxb
+
     @staticmethod
-    def setup_args():
-        args = kim.build_parser().parse_args(['--data_path', 'data/path','--hostname', 'babies', '-machine_barcode', '24'])
-        # logger.debug(args)
+    def setup_args(machine_barcode):
+        args = kim.build_parser().parse_args(['-machine_barcode', machine_barcode])
+        config_tools.add_config_file_settings_to_args(args)
         return args
 
     @staticmethod
     def create_lims_plate_orm():
+
         l = lpo.LimsPlateOrm()
 
         l.project_code = 'PRJ'
@@ -37,89 +58,81 @@ class TestKim(unittest.TestCase):
         return l
 
     @staticmethod
-    def create_scan_from_archive(machine_barcode):
-        OG_LPO = scan.lpo.get_by_machine_barcode
-        # OG_scan_os = scan.os.path.join
-        OG_scan_get_num_lxb = scan.ScanInfo.get_num_lxbs_scanned
-        OG_scan_done = scan.ScanInfo.check_scan_done
-
-        scan.lpo.get_by_machine_barcode = mock.Mock(return_value=TestKim.create_lims_plate_orm())
-        # scan.os.path.join = mock.Mock(return_value='fake_lxb_path')
-        scan.ScanInfo.get_num_lxbs_scanned = mock.Mock(return_value=384)
-        scan.ScanInfo.check_scan_done = mock.Mock(return_value=(True, 1))
-
-        fake_scan = scan.ScanInfo(None, "archive_path", "elapse_time", machine_barcode)
-
-        scan.lpo.get_by_machine_barcode = OG_LPO
-        # scan.os.path.join = OG_scan_os
-        scan.ScanInfo.get_num_lxbs_scanned = OG_scan_get_num_lxb
-        scan.ScanInfo.check_scan_done = OG_scan_done
-
-        return fake_scan
-
-    def test_sift_for_viable_jobs(self):
-        OG_setup_dirs = kim.setup_project_directory_structure_if_needed
-        OG_job_by_pmb = kim.jobs.get_jobs_entry_by_plate_machine_barcode
-
-        fake_job = kim.jobs.JobsOrm(plate_machine_barcode="pmb1")
-        kim.setup_project_directory_structure_if_needed = mock.Mock()
-        kim.jobs.get_jobs_entry_by_plate_machine_barcode = mock.Mock(
-            return_value =fake_job)
+    def common_setup_kim(machine_barcode):
+        args = TestKim.setup_args(machine_barcode)
         cursor = mock.Mock()
-        cursor.execute = mock.Mock()
-        cursor.statement = mock.Mock()
 
-        args = TestKim.setup_args()
+        test = kim.Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
+        print test
+        return (test, args)
 
-        happy_scan = TestKim.create_scan_from_archive("machine_barcode")
-        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, happy_scan)
-        self.assertEqual(prj_dir, "data/path/PRJ")
-        self.assertEqual(lxb_dir, "data/path/PRJ/lxb/det_plate")
-        self.assertFalse(dev_flag)
+    def test__init__(self):
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        self.assertEqual(test_kim.plate_search_name, 'det_plate')
+        self.assertEqual(test_kim.base_data_path, args.data_path)
+        self.assertEqual(test_kim.lxb2jcsv_path, args.lxb2jcsv_path)
+        self.assertEqual(test_kim.is_dev, False)
+        self.assertEqual(test_kim.destination_project_dir, '/cmap/obelix/pod/custom/PRJ')
+        self.assertEqual(test_kim.destination_lxb_dir, '/cmap/obelix/pod/custom/PRJ/lxb/det_plate')
+
+    def test_set_destination_dirs(self):
+        # HAPPY CONDITION, LPO RETURNED
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.base_data_path = 'base_data_path'
+        (prj_dir, lxb_dir) = test_kim.set_destination_dirs()
+
+        self.assertEqual(prj_dir, 'base_data_path/PRJ')
+        self.assertEqual(lxb_dir, 'base_data_path/PRJ/lxb/det_plate')
 
 
-        # DEV plate condition
-        dev_scan = TestKim.create_scan_from_archive("DEV_plate")
-        dev_scan.lims_plate_orm = None
-        dev_scan.plate_search_name = "DEV_plate"
-        (prj_dir, lxb_dir, dev_flag) = kim.sift_for_viable_jobs(args, dev_scan)
-        self.assertEqual(prj_dir, "data/path/DEV")
-        self.assertEqual(lxb_dir, "data/path/DEV/lxb/DEV_plate")
-        self.assertTrue(dev_flag)
+        # UNHAPPY CONDITION, LPO IS NONE
+        kim.si.lpo.get_by_machine_barcode.return_value = None
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        test_kim.base_data_path = 'base_data_path'
+        (prj_dir, lxb_dir) = test_kim.set_destination_dirs()
 
+        self.assertEqual(prj_dir, "base_data_path/DEV")
+        self.assertEqual(lxb_dir, "base_data_path/DEV/lxb/DEV_plate")
 
-        # no lims_plate_orm, not DEV plate condition
-        unhappy_scan = TestKim.create_scan_from_archive("no_lpo")
-        unhappy_scan.lims_plate_orm = None
+    def test_check_dev(self):
+        kim.si.lpo.get_by_machine_barcode.return_value = None
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        self.assertEqual(test_kim.plate_search_name, 'DEV_plate')
+        self.assertTrue(test_kim.is_dev)
 
-        with self.assertRaises(kim.qmExceptions.PlateCannotBeProcessed):
-            kim.sift_for_viable_jobs(args, unhappy_scan)
-
-        kim.setup_project_directory_structure_if_needed = OG_setup_dirs
-        kim.jobs.get_jobs_entry_by_plate_machine_barcode = OG_job_by_pmb
-
+        is_dev = test_kim.check_for_dev()
+        self.assertTrue(is_dev)
 
     def test_setup_project_directory_structure_if_needed(self):
+        # SET UP FOR TEAR DOWN
         OG_p_exists = kim.os.path.exists
         OG_mkdir = kim.os.mkdir
 
+        # SET UP MOCKS
         kim.os.path.exists = mock.Mock(return_value=True)
         kim.os.mkdir = mock.Mock()
 
-        kim.setup_project_directory_structure_if_needed("this_path_exists")
+        # HAPPY CONDITION
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        setup_dir = test_kim.setup_project_directory_structure_if_needed()
+
+        self.assertFalse(setup_dir)
         kim.os.mkdir.assert_not_called
 
+        # UNHAPPY CONDITION
         kim.os.path.exists.return_value = False
+        test_kim.destination_project_dir = "this_path_dne"
+        setup_dir = test_kim.setup_project_directory_structure_if_needed()
 
-        kim.setup_project_directory_structure_if_needed("this_path_dne")
+        self.assertTrue(setup_dir)
         kim.os.mkdir.assert_called
-
         mkdir_calls = kim.os.mkdir.call_args_list
         expected_calls = [mock.call("this_path_dne"), mock.call("this_path_dne/lxb"), mock.call("this_path_dne/map_src"),
                           mock.call("this_path_dne/maps"), mock.call("this_path_dne/roast"), mock.call("this_path_dne/brew"),
                           mock.call("this_path_dne/cup")]
         self.assertEqual(mkdir_calls, expected_calls)
 
+        # TEAR DOWN
         kim.os.path.exists = OG_p_exists
         kim.os.mkdir = OG_mkdir
 
@@ -134,20 +147,20 @@ class TestKim(unittest.TestCase):
         kim.shutil.copyfile = mock.Mock()
 
         # SETUP ARGS AND MAKE CALL
-        fake_destination = 'destination_base_path/lxb'
-        fake_scan = TestKim.create_scan_from_archive("machine_barcode")
-        kim.copy_lxbs_to_project_directory(fake_destination, fake_scan)
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        result = test_kim.copy_lxbs_to_project_directory()
 
         # VALIDATE GLOB
+        self.assertTrue(result)
         kim.glob.glob.assert_called_once
         glob_args = kim.glob.glob.call_args_list[0]
-        self.assertEqual(glob_args, mock.call('archive_path/lxb/det_plate*/*.lxb'))
+        self.assertEqual(glob_args, mock.call(os.path.join(args.archive_path,'lxb/det_plate*/*.lxb')))
 
         # VALIDATE COPY
         copyfile_calls = kim.shutil.copyfile.call_args_list
 
         for (i, glob) in enumerate(glob_results):
-            this_call = mock.call(glob_results[i], 'destination_base_path/lxb/' +glob_results[i])
+            this_call = mock.call(glob_results[i],os.path.join(test_kim.destination_lxb_dir, glob_results[i]))
             self.assertEqual(copyfile_calls[i], this_call)
 
         # RESET MOCKED FUNCTIONS
@@ -160,17 +173,17 @@ class TestKim(unittest.TestCase):
         kim.os.system = mock.Mock(return_value=True)
 
         # SETUP ARGS AND MAKE CALL
-        (lxb2jcsv_path, destination_lxb_dir) = ("lxb2jcsv/path", "destination/path")
-        outfile = kim.make_jcsv_in_lxb_directory(lxb2jcsv_path, destination_lxb_dir, "det_plate")
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        outfile = test_kim.make_jcsv_in_lxb_directory()
 
         # VALIDATE OUTPUT
-        expected_outfile = "destination/path/det_plate"
+        expected_outfile = os.path.join(test_kim.destination_lxb_dir,"det_plate"+".jcsv")
         self.assertEqual(outfile, expected_outfile)
 
         # VALIDATE CMD
         kim.os.system.assert_called_once
         mk_jcsv_cmd = kim.os.system.call_args_list[0]
-        expected_cmd = mock.call("lxb2jcsv/path -i destination/path -o " + expected_outfile)
+        expected_cmd = mock.call("{} -i {} -o {}".format(args.lxb2jcsv_path, test_kim.destination_lxb_dir, expected_outfile))
         self.assertEqual(mk_jcsv_cmd, expected_cmd)
 
         kim.os.system = OG_cmd
@@ -178,7 +191,9 @@ class TestKim(unittest.TestCase):
         cursor = mock.Mock()
         cursor.execute = mock.Mock()
 
-        updated_entry = kim.make_lims_database_updates(cursor, TestKim.create_lims_plate_orm())
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.cursor = cursor
+        updated_entry = test_kim.make_lims_database_updates()
 
         cursor.execute.assert_called_once
         self.assertEqual(updated_entry.rna_plate, 'pertPlate_cellId_pertTime_repNum')
@@ -188,6 +203,10 @@ class TestKim(unittest.TestCase):
         #todo reminder
         cursor_call = cursor.execute.call_args_list[0]
         logger.warning("add test for cursor.statement {}".format(cursor_call))
+
+    def test_execute_command(self):
+        pass
+
 
 if __name__ == "__main__":
     setup_logger.setup(verbose=True)
