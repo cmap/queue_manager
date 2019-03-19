@@ -68,13 +68,14 @@ class Kim(si.ScanInfo):
 
     def set_destination_dirs(self):
         if self.is_dev:
-            destination_project_dir = os.path.join(self.base_data_path, 'DEV')
-            destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', self.plate_search_name)
+            self.destination_project_dir = os.path.join(self.base_data_path, 'DEV')
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
         else:
-            destination_project_dir = os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
-            destination_lxb_dir = os.path.join(destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
+            self.destination_project_dir = os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
 
-        return (destination_project_dir, destination_lxb_dir)
+        if not os.path.exists(self.destination_lxb_dir):
+            os.mkdir(self.destination_lxb_dir)
 
     def setup_project_directory_structure_if_needed(self):
         # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
@@ -84,6 +85,7 @@ class Kim(si.ScanInfo):
                 os.mkdir(os.path.join(self.destination_project_dir, subdir))
             return True
         return False
+
     def _num_lxbs_at_destination(self):
         return len(glob.glob(os.path.join(self.destination_lxb_dir, self.lims_plate_orm.det_plate, '*.lxb'))) > 0
 
