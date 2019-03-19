@@ -134,8 +134,7 @@ class TestYeezy(unittest.TestCase):
         args = TestYeezy.build_args()
         Yeezy = yeezy.make_job(args)
         expected_fields = ["cursor", "archive_path", "lxb_path", "num_lxbs_scanned", "lims_plate_orm",
-                           "plate_search_name",
-                           "scan_done_elapsed_time"]
+                           "plate_search_name", "scan_done_elapsed_time"]
 
         init_none_fields = ["elapsed_time", "scan_done"]
 

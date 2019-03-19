@@ -63,7 +63,7 @@ class TestRoastCommander(unittest.TestCase):
         (test_rc, args) = TestRoastCommander.common_roast_commander_setup(test_barcode)
 
         self.assertEqual(test_rc.project_directory, os.path.join(args.data_path, test_project))
-        self.assertEqual(test_rc.map_dir_path, os.path.join(args.data_path, 'map_src'))
+        self.assertEqual(test_rc.map_src_dir_path, os.path.join(args.data_path, 'map_src'))
         self.assertEqual(test_rc.lxb_dir_path, os.path.join(args.data_path, test_project, 'lxb', test_det_plate))
 
     def test__build_command(self):
@@ -71,7 +71,7 @@ class TestRoastCommander(unittest.TestCase):
         expected_command = """nohup matlab -nodesktop -nosplash -r "cd /cmap/tools/jenkins/job_repos/espresso/roast; roast('clean', true,
                             'plate', 'test_det_plate',
                             'plate_path', '/cmap/obelix/pod/custom/TEST/roast',
-                            'map_path', '/cmap/obelix/pod/custom/map_src',
+                            'map_src_path', '/cmap/obelix/pod/custom/map_src',
                             'raw_path', '/cmap/obelix/pod/custom/TEST/lxb/test_det_plate',
                             'parallel', true); quit" < /dev/null"""
         self.assertEqual(test_rc.command, expected_command)
@@ -80,7 +80,7 @@ class TestRoastCommander(unittest.TestCase):
         args = TestRoastCommander.build_args(test_barcode)
         RC = rc.make_job(args)
         expected_fields = ["base_path", "espresso_path", "plate", "command", "lims_plate_orm", "project_directory",
-                           "map_dir_path", "lxb_dir_path", "roast_dir_path"]
+                           "map_src_dir_path", "lxb_dir_path", "roast_dir_path"]
         for field in expected_fields:
             self.assertIsNotNone(getattr(RC, field))
 

@@ -1,9 +1,7 @@
 import argparse
-import ConfigParser
 import logging
 import os
 import sys
-import subprocess
 
 import caldaia.utils.mysql_utils as mu
 import caldaia.utils.config_tools as config_tools
@@ -11,7 +9,7 @@ import caldaia.utils.orm.lims_plate_orm as lpo
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.exceptions as qmExceptions
-import sqs_queues.sqs_utils as sqs_utils
+
 from sqs_queues.CommanderTemplate import CommanderTemplate
 
 
@@ -54,7 +52,7 @@ class RoastCommander(CommanderTemplate):
 
     def _build_paths(self):
         self.project_directory = os.path.join(self.base_path, self.lims_plate_orm.project_code)
-        self.map_dir_path = os.path.join(self.base_path, 'map_src')
+        self.map_src_dir_path = os.path.join(self.base_path, 'map_src')
         self.lxb_dir_path = os.path.join(self.project_directory, 'lxb', self.plate)
         self.roast_dir_path = os.path.join(self.project_directory, 'roast')
 
@@ -63,10 +61,10 @@ class RoastCommander(CommanderTemplate):
         roast_cmd = """roast('clean', true,
                             'plate', '{}',
                             'plate_path', '{}',
-                            'map_path', '{}',
+                            'map_src_path', '{}',
                             'raw_path', '{}',
                             'parallel', true)""".format(self.plate, self.roast_dir_path,
-                                                        self.map_dir_path, self.lxb_dir_path)
+                                                        self.map_src_dir_path, self.lxb_dir_path)
         full_cmd = 'nohup matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
         return full_cmd
 

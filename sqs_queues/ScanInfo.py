@@ -26,11 +26,15 @@ class ScanInfo(object):
         else:
             self.plate_search_name = machine_barcode
 
-        self.lxb_path = os.path.join(self.archive_path, 'lxb', self.plate_search_name + '*')
+        self._get_lxb_path()
         self.num_lxbs_scanned = self.get_num_lxbs_scanned()
 
     def __str__(self):
         return " ".join(["{}:{}".format(k, v) for (k, v) in self.__dict__.items()])
+
+    def _get_lxb_path(self):
+        self.lxb_path = os.path.join(self.archive_path, 'lxb', self.plate_search_name + '*')
+        logger.info("Checking {} for LXBs".format(self.lxb_path))
 
     def get_num_lxbs_scanned(self):
         # GET THE NUMBER OF LXBS IN THE ARCHIVE DIRECTORY
