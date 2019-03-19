@@ -28,8 +28,9 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-machine_barcode', required=True)
-    config_tools.add_config_file_options_to_parser(parser)
+    parser.add_argument('-plate_search_name', help='name to search for in archive directory')
     config_tools.add_options_to_override_config(parser, ['lxb2jcsv_path','hostname', 'archive_path','data_path'])
+    config_tools.add_config_file_options_to_parser(parser)
     return parser
 
 def main(args):
@@ -43,11 +44,14 @@ def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
+    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode, args.plate_search_name)
 
 class Kim(si.ScanInfo):
-    def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode):
+    def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode, plate_search_name=None):
         super(Kim, self).__init__(cursor, archive_path, machine_barcode)
+        if plate_search_name is not None:
+            self.plate_search_name = plate_search_name
+            self._get_lxb_path()
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
         self.is_dev = self.check_for_dev()

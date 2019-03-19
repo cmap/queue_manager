@@ -24,8 +24,8 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-machine_barcode', help='machine barcode of plate', required=True)
 
-    config_tools.add_config_file_options_to_parser(parser)
     config_tools.add_options_to_override_config(parser, ['hostname','archive_path','scan_done_elapsed_time'])
+    config_tools.add_config_file_options_to_parser(parser)
 
     return parser
 
@@ -88,5 +88,5 @@ if __name__ == '__main__':
     config_tools.add_config_file_settings_to_args(args)
 
     setup_logger.setup(verbose=True)
-
+    logger.info("Yeezy args - {}".format(args))
     main(args)
