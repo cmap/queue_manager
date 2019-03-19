@@ -55,7 +55,7 @@ class Kim(si.ScanInfo):
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
         self.is_dev = self.check_for_dev()
-        (self.destination_project_dir, self.destination_lxb_dir) = self.set_destination_dirs()
+        self.set_destination_dirs()
 
     def check_for_dev(self):
         if self.lims_plate_orm is not None:
