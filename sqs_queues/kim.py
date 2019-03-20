@@ -34,20 +34,18 @@ def build_parser():
 
 def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
-    cursor = db.cursor()
 
-    this = Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
+    this = Kim(db, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
     this.execute_command()
 
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
-    cursor = db.cursor()
 
-    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
+    return Kim(db, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
 
 class Kim(si.ScanInfo):
-    def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode):
-        super(Kim, self).__init__(cursor, archive_path, machine_barcode)
+    def __init__(self, db, archive_path, data_path, lxb2jcsv_path, machine_barcode):
+        super(Kim, self).__init__(db, archive_path, machine_barcode)
 
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
@@ -143,6 +141,7 @@ class Kim(si.ScanInfo):
 
         # USE ORM OBJECT TO UPDATE DATABASE
         self.lims_plate_orm.update_in_db(self.cursor)
+        self.db.commit()
 
     def execute_command(self):
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.

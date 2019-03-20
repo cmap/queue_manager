@@ -23,28 +23,27 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-machine_barcode', help='machine barcode of plate', required=True)
+    config_tools.add_config_file_options_to_parser(parser)
 
     config_tools.add_options_to_override_config(parser, ['hostname','archive_path','scan_done_elapsed_time'])
-    config_tools.add_config_file_options_to_parser(parser)
 
     return parser
 
 def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
-    cursor = db.cursor()
 
-    this = Yeezy(cursor, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
+
+    this = Yeezy(db, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
     this.execute_command()
 
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
-    cursor = db.cursor()
 
-    return Yeezy(cursor, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
+    return Yeezy(db, args.archive_path, int(args.scan_done_elapsed_time), args.machine_barcode)
 
 class Yeezy(si.ScanInfo):
-    def __init__(self, cursor, archive_path, scan_done_elapsed_time, machine_barcode):
-        super(Yeezy, self).__init__(cursor, archive_path, machine_barcode)
+    def __init__(self, db, archive_path, scan_done_elapsed_time, machine_barcode):
+        super(Yeezy, self).__init__(db, archive_path, machine_barcode)
         self.scan_done_elapsed_time = int(scan_done_elapsed_time)
         self.elapsed_time = None
         self.scan_done = None

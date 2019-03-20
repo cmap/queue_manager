@@ -13,13 +13,14 @@ import caldaia.utils.orm.lims_plate_orm as lpo
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 class ScanInfo(object):
-    def __init__(self, cursor, archive_path, machine_barcode):
-        self.cursor = cursor
+    def __init__(self, db, archive_path, machine_barcode):
+        self.db = db
+        self.cursor = self.db.cursor()
         self.archive_path = archive_path
         self.lxb_path = None
         self.num_lxbs_scanned = None
 
-        self.lims_plate_orm = lpo.get_by_machine_barcode(self.cursor, machine_barcode)
+        self.lims_plate_orm = lpo.get_by_machine_barcode(self.db.cursor(), machine_barcode)
 
         if self.lims_plate_orm:
             self.plate_search_name = self.lims_plate_orm.det_plate
@@ -38,7 +39,6 @@ class ScanInfo(object):
 
     def get_num_lxbs_scanned(self):
         # GET THE NUMBER OF LXBS IN THE ARCHIVE DIRECTORY
-
         return len(glob.glob(os.path.join(self.lxb_path, '*.lxb')))
 
     def check_last_lxb_addition(self):
