@@ -70,17 +70,16 @@ class Kim(si.ScanInfo):
             self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
         else:
             self.build_plate_values()
-            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
     def check_lxb_destination(self):
-        if not os.path.exists(self.destination_lxb_dir):
-            os.mkdir(self.destination_lxb_dir)
-
-        elif self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
+        if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
             logger.info("Found existing directory for plate -- deprecating")
             if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
                 os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
             shutil.move(self.destination_lxb_dir,
                         os.path.join(self.destination_project_dir, "lxb", "deprecated", self.plate_search_name))
+
+        os.mkdir(self.destination_lxb_dir)
 
     def setup_project_directory_structure_if_needed(self):
         # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT

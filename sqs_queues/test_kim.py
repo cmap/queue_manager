@@ -131,7 +131,7 @@ class TestKim(unittest.TestCase):
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.check_lxb_destination()
 
-        kim.os.path.exists.assert_called_once_with(test_kim.destination_lxb_dir)
+        kim.os.path.exists.assert_called_once_with(test_kim.destination_lxb_dir + "/*.jcsv")
         kim.os.mkdir.assert_called_once_with(test_kim.destination_lxb_dir)
 
         # SETUP MOCKS FOR NEXT TEST
@@ -144,20 +144,20 @@ class TestKim(unittest.TestCase):
         OG_JCSV = kim.Kim._jcsv_at_destination
         OG_move = kim.shutil.move
 
-        kim.Kim._num_lxbs_at_destination = mock.Mock(return_value=0)
+        kim.Kim._num_lxbs_at_destination = mock.Mock(return_value=100)
         kim.Kim._jcsv_at_destination = mock.Mock(return_value=False)
         kim.shutil.move = mock.Mock()
 
-        # CONDITION - DESTINATION EXISTS, NO JCSV OR LXB
+        # CONDITION - DESTINATION EXISTS, LXBS PRESENT
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.check_lxb_destination()
 
 
-        kim.os.path.exists.assert_called_once_with(test_kim.destination_lxb_dir)
-        kim.os.mkdir.assert_not_called()
+        kim.os.path.exists.assert_called_with(test_kim.destination_project_dir + "/lxb/deprecated")
         kim.Kim._jcsv_at_destination.assert_called_once
         kim.Kim._num_lxbs_at_destination.assert_called_once
-        kim.shutil.move.assert_not_called()
+        kim.shutil.move.assert_called_with(test_kim.destination_lxb_dir, test_kim.destination_project_dir+"/lxb/deprecated/"+test_kim.plate_search_name)
+        kim.os.mkdir.assert_called_with(test_kim.destination_lxb_dir)
 
         # SETUP MOCKS FOR NEXT TEST
 
@@ -172,11 +172,11 @@ class TestKim(unittest.TestCase):
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.check_lxb_destination()
 
-        kim.os.mkdir.assert_not_called()
         path_exists_calls = kim.os.path.exists.call_args_list
-        expected_calls = [mock.call(test_kim.destination_lxb_dir), mock.call(test_kim.destination_project_dir+"/lxb/deprecated")]
+        expected_calls = [mock.call(test_kim.destination_project_dir+"/lxb/deprecated")]
         self.assertEqual(path_exists_calls, expected_calls)
         kim.shutil.move.assert_called_with(test_kim.destination_lxb_dir, test_kim.destination_project_dir+"/lxb/deprecated/det_plate")
+        kim.os.mkdir.assert_called_with(test_kim.destination_lxb_dir)
 
         # TEAR DOWN MOCKS
         kim.os.path.exists = OG_p_exists
