@@ -70,7 +70,7 @@ class Kim(si.ScanInfo):
             self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
         else:
             self.build_plate_values()
-            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
     def check_lxb_destination(self):
         if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
             logger.info("Found existing directory for plate -- deprecating")
