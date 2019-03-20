@@ -61,6 +61,7 @@ class Kim(si.ScanInfo):
         if self.lims_plate_orm is not None:
             self.is_dev = False
         elif self.plate_search_name.startswith("DEV"):
+            logger.info("{} identified as a DEV plate".format(self.plate_search_name))
             self.is_dev = True
         else:
             msg = "The following plate : {} is not viable for processing".format(self.plate_search_name)
@@ -75,6 +76,7 @@ class Kim(si.ScanInfo):
             os.mkdir(self.destination_lxb_dir)
 
         elif self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
+            logger.info("Found existing directory for plate -- deprecating")
             if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
                 os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
             shutil.move(self.destination_lxb_dir,
