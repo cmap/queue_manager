@@ -54,28 +54,31 @@ class Kim(si.ScanInfo):
             self._get_lxb_path()
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
-        self.is_dev = self.check_for_dev()
+        self.check_for_dev()
         self.set_destination_dirs()
 
     def check_for_dev(self):
         if self.lims_plate_orm is not None:
-            return False
-        if self.plate_search_name.startswith("DEV"):
-            return True
+            self.is_dev = False
+        elif self.plate_search_name.startswith("DEV"):
+            self.is_dev = True
         else:
             msg = "The following plate : {} is not viable for processing".format(self.plate_search_name)
             raise qmExceptions.PlateCannotBeProcessed(msg)
 
     def set_destination_dirs(self):
-        if self.is_dev:
-            self.destination_project_dir = os.path.join(self.base_data_path, 'DEV')
-            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
-        else:
-            self.destination_project_dir = os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
-            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
+        self.destination_project_dir = os.path.join(self.base_data_path, 'DEV') if self.is_dev else os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
+        self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
 
+    def check_lxb_destination(self):
         if not os.path.exists(self.destination_lxb_dir):
             os.mkdir(self.destination_lxb_dir)
+
+        elif self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
+            if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
+                os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
+            shutil.move(self.destination_lxb_dir,
+                        os.path.join(self.destination_project_dir, "lxb", "deprecated", self.plate_search_name))
 
     def setup_project_directory_structure_if_needed(self):
         # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
@@ -87,7 +90,7 @@ class Kim(si.ScanInfo):
         return False
 
     def _num_lxbs_at_destination(self):
-        return len(glob.glob(os.path.join(self.destination_lxb_dir, self.lims_plate_orm.det_plate, '*.lxb'))) > 0
+        return len(glob.glob(os.path.join(self.destination_lxb_dir, self.plate_search_name, '*.lxb')))
 
     def copy_lxbs_to_project_directory(self):
         # MOVE ALL LXBs FROM ARCHIVE LOCATION
@@ -127,7 +130,7 @@ class Kim(si.ScanInfo):
     def make_lims_database_updates(self):
         # SET FIELD IN ORM OBJECT
         rna_plate_fields = [self.lims_plate_orm.pert_plate, self.lims_plate_orm.cell_id,
-                            self.lims_plate_orm.pert_time,
+                            str(self.lims_plate_orm.pert_time),
                             self.lims_plate_orm.rep_num]
         self.lims_plate_orm.rna_plate = "_".join(rna_plate_fields)
         self.lims_plate_orm.det_plate = self.lims_plate_orm.rna_plate + "_" + self.lims_plate_orm.bead_set
@@ -139,15 +142,13 @@ class Kim(si.ScanInfo):
 
     def execute_command(self):
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
-        self.created_project_dir = self.setup_project_directory_structure_if_needed()
-        self.moved_lxbs = self.copy_lxbs_to_project_directory() if self._num_lxbs_at_destination() < self.num_lxbs_scanned else False
-        self.made_jcsv = self.make_jcsv_in_lxb_directory() if self._jcsv_at_destination() is False else False
-        if self.moved_lxbs and self.made_jcsv:
+        self.setup_project_directory_structure_if_needed()
+        self.check_lxb_destination()
+        self.copy_lxbs_to_project_directory()
+        self.make_jcsv_in_lxb_directory()
+        if not self.is_dev:
             self.make_lims_database_updates()
             rpf.rename_files(self.lims_plate_orm.det_plate, self.destination_lxb_dir)
-            return True
-        return False
-        #todo or should raise exception ?
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import shutil
 import sys
 
 import caldaia.utils.mysql_utils as mu
@@ -22,39 +23,61 @@ def build_parser():
     config_tools.add_options_to_override_config(parser, ['hostname', 'data_path', 'scan_done_elapsed_time',
                                                          'queue_manager_config_filepath'])
 
-    parser.add_argument('-machine_barcode')
+    parser.add_argument('-machine_barcode', help='for production use')
     parser.add_argument('-espresso_path', help='path to espresso repo', default='/cmap/tools/jenkins/job_repos/espresso')
 
+    parser.add_argument('-det_plate', help='name of plate to roast', type=str)
+    parser.add_argument('-deprecate', help='flag to deprecate rather than delete', action='store_true')
     return parser
 
 def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    this = RoastCommander(cursor, args.data_path, args.espresso_path, args.machine_barcode)
+    plate = lpo.get_by_det_plate(cursor, args.det_plate)
+    if plate:
+        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+    else:
+        plate = lpo.LimsPlateOrm()
+        plate.parse_det_plate(args.det_plate)
+        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+
     this.execute_command()
 
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    return RoastCommander(cursor, args.data_path, args.espresso_path, args.machine_barcode)
+    plate = lpo.get_by_machine_barcode(cursor, args.machine_barcode)
+
+    return RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
 
 class RoastCommander(CommanderTemplate):
-    def __init__(self, cursor, base_path, espresso_path, machine_barcode):
+    def __init__(self, base_path, espresso_path, det_plate, project_id, deprecate):
         super(RoastCommander, self).__init__(base_path, espresso_path)
-        self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
-        self.plate = self.lims_plate_orm.det_plate
+        self.plate = det_plate
+        self.project_id = project_id
 
+        self.do_deprecate = deprecate
         self._build_paths()
-        self.command = self._build_command()
+        self._build_command()
 
     def _build_paths(self):
-        self.project_directory = os.path.join(self.base_path, self.lims_plate_orm.project_code)
+        self.project_directory = os.path.join(self.base_path, self.project_id)
         self.map_src_dir_path = os.path.join(self.base_path, 'map_src')
         self.lxb_dir_path = os.path.join(self.project_directory, 'lxb', self.plate)
         self.roast_dir_path = os.path.join(self.project_directory, 'roast')
+        self.plate_roast_dir_path = os.path.join(self.roast_dir_path, self.plate)
+
+    def _check_for_preexisting_roast(self):
+        if os.path.exists(self.plate_roast_dir_path):
+            if self.do_deprecate:
+                if not os.path.exists(os.path.join(self.roast_dir_path, "deprecated")):
+                        os.mkdir(os.path.join(self.roast_dir_path, "deprecated"))
+                shutil.move(self.plate_roast_dir_path, os.path.join(self.roast_dir_path, "deprecated", self.replicate_set_name))
+            else:
+                shutil.rmtree(self.plate_roast_dir_path)
 
     def _build_command(self):
         cd_cmd = '"cd ' + os.path.join(self.espresso_path, 'roast')
@@ -65,9 +88,9 @@ class RoastCommander(CommanderTemplate):
                             'raw_path', '{}',
                             'parallel', true)""".format(self.plate, self.roast_dir_path,
                                                         self.map_src_dir_path, self.lxb_dir_path)
-        full_cmd = 'nohup matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
-        return full_cmd
+        self.command = 'nohup matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
 
+        logger.info("Command built : {}".format(self.command))
 
 
 if __name__ == '__main__':

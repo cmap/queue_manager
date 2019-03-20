@@ -13,6 +13,7 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 OG_LPO_get = kim.si.lpo.get_by_machine_barcode
 OG_scan_num_lxbs = kim.Kim.get_num_lxbs_scanned
 OG_scan_last_lxb = kim.Kim.check_last_lxb_addition
+OG_mk_destination = kim.os.mkdir
 
 test_barcode = 'test_barcode'
 
@@ -26,12 +27,17 @@ class TestKim(unittest.TestCase):
 
     def setUp(self):
         kim.si.lpo.get_by_machine_barcode.return_value = TestKim.create_lims_plate_orm()
+        kim.os.mkdir = mock.Mock()
+
+    def tearDown(self):
+        kim.os.mkdir.reset_mock()
 
     @classmethod
     def tearDownClass(cls):
         kim.si.lpo.get_by_machine_barcode = OG_LPO_get
         kim.Kim.get_num_lxbs_scanned = OG_scan_num_lxbs
         kim.Kim.check_last_lxb_addition = OG_scan_last_lxb
+        kim.os.mkdir = OG_mk_destination
 
     @staticmethod
     def build_args(machine_barcode):
@@ -75,33 +81,105 @@ class TestKim(unittest.TestCase):
         self.assertEqual(test_kim.destination_project_dir, '/cmap/obelix/pod/custom/PRJ')
         self.assertEqual(test_kim.destination_lxb_dir, '/cmap/obelix/pod/custom/PRJ/lxb/det_plate')
 
-    def test_set_destination_dirs(self):
-        # HAPPY CONDITION, LPO RETURNED
-        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
-        test_kim.base_data_path = 'base_data_path'
-        (prj_dir, lxb_dir) = test_kim.set_destination_dirs()
-
-        self.assertEqual(prj_dir, 'base_data_path/PRJ')
-        self.assertEqual(lxb_dir, 'base_data_path/PRJ/lxb/det_plate')
-
-
-        # UNHAPPY CONDITION, LPO IS NONE
-        kim.si.lpo.get_by_machine_barcode.return_value = None
-        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
-        test_kim.base_data_path = 'base_data_path'
-        (prj_dir, lxb_dir) = test_kim.set_destination_dirs()
-
-        self.assertEqual(prj_dir, "base_data_path/DEV")
-        self.assertEqual(lxb_dir, "base_data_path/DEV/lxb/DEV_plate")
-
     def test_check_dev(self):
+        # IS DEV
+
         kim.si.lpo.get_by_machine_barcode.return_value = None
         (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
         self.assertEqual(test_kim.plate_search_name, 'DEV_plate')
         self.assertTrue(test_kim.is_dev)
 
-        is_dev = test_kim.check_for_dev()
-        self.assertTrue(is_dev)
+        test_kim.check_for_dev()
+        self.assertTrue(test_kim.is_dev)
+
+        kim.si.lpo.get_by_machine_barcode.reset_mock()
+        kim.si.lpo.get_by_machine_barcode.return_value = TestKim.create_lims_plate_orm()
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        self.assertFalse(test_kim.is_dev)
+
+
+
+    def test_set_destination_dirs(self):
+        # HAPPY CONDITION, LPO RETURNED
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.base_data_path = 'base_data_path'
+        test_kim.set_destination_dirs()
+
+        self.assertEqual(test_kim.destination_project_dir, 'base_data_path/PRJ')
+        self.assertEqual(test_kim.destination_lxb_dir, 'base_data_path/PRJ/lxb/det_plate')
+
+        # UNHAPPY CONDITION, LPO IS NONE
+        kim.si.lpo.get_by_machine_barcode.return_value = None
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        test_kim.base_data_path = 'base_data_path'
+        test_kim.set_destination_dirs()
+
+        self.assertEqual(test_kim.destination_project_dir, "base_data_path/DEV")
+        self.assertEqual(test_kim.destination_lxb_dir, "base_data_path/DEV/lxb/DEV_plate")
+
+    def test_check_lxb_destination(self):
+        # SET UP FOR TEAR DOWN
+        OG_p_exists = kim.os.path.exists
+
+        # SET UP MOCKS
+        kim.os.path.exists = mock.Mock(return_value=False)
+
+        # CONDITION - DESTINATION D.N.E.
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.check_lxb_destination()
+
+        kim.os.path.exists.assert_called_once_with(test_kim.destination_lxb_dir)
+        kim.os.mkdir.assert_called_once_with(test_kim.destination_lxb_dir)
+
+        # SETUP MOCKS FOR NEXT TEST
+
+        kim.os.path.exists.reset_mock()
+        kim.os.path.exists.return_value = True
+        kim.os.mkdir.reset_mock()
+
+        OG_num = kim.Kim._num_lxbs_at_destination
+        OG_JCSV = kim.Kim._jcsv_at_destination
+        OG_move = kim.shutil.move
+
+        kim.Kim._num_lxbs_at_destination = mock.Mock(return_value=0)
+        kim.Kim._jcsv_at_destination = mock.Mock(return_value=False)
+        kim.shutil.move = mock.Mock()
+
+        # CONDITION - DESTINATION EXISTS, NO JCSV OR LXB
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.check_lxb_destination()
+
+
+        kim.os.path.exists.assert_called_once_with(test_kim.destination_lxb_dir)
+        kim.os.mkdir.assert_not_called()
+        kim.Kim._jcsv_at_destination.assert_called_once
+        kim.Kim._num_lxbs_at_destination.assert_called_once
+        kim.shutil.move.assert_not_called()
+
+        # SETUP MOCKS FOR NEXT TEST
+
+        kim.os.path.exists.reset_mock()
+        kim.os.mkdir.reset_mock()
+        kim.Kim._num_lxbs_at_destination.reset_mock()
+        kim.Kim._jcsv_at_destination.reset_mock()
+        kim.Kim._jcsv_at_destination.return_value = True
+
+        # CONDITION - DESTINATION EXISTS, JCSV EXISTS
+
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.check_lxb_destination()
+
+        kim.os.mkdir.assert_not_called()
+        path_exists_calls = kim.os.path.exists.call_args_list
+        expected_calls = [mock.call(test_kim.destination_lxb_dir), mock.call(test_kim.destination_project_dir+"/lxb/deprecated")]
+        self.assertEqual(path_exists_calls, expected_calls)
+        kim.shutil.move.assert_called_with(test_kim.destination_lxb_dir, test_kim.destination_project_dir+"/lxb/deprecated/det_plate")
+
+        # TEAR DOWN MOCKS
+        kim.os.path.exists = OG_p_exists
+        kim.Kim._num_lxbs_at_destination = OG_num
+        kim.Kim._jcsv_at_destination = OG_JCSV
+        kim.shutil.move = OG_move
 
     def test_setup_project_directory_structure_if_needed(self):
         # SET UP FOR TEAR DOWN
@@ -216,7 +294,58 @@ class TestKim(unittest.TestCase):
             self.assertIsNotNone(getattr(Kim, field))
 
     def test_execute_command(self):
-        pass
+        # SETUP MOCKS
+        OG_setup = kim.Kim.setup_project_directory_structure_if_needed
+        OG_check_lxb = kim.Kim.check_lxb_destination
+        OG_copy_lxb = kim.Kim.copy_lxbs_to_project_directory
+        OG_make_jcsv = kim.Kim.make_jcsv_in_lxb_directory
+        OG_lims_update = kim.Kim.make_lims_database_updates
+        OG_rename = kim.rpf.rename_files
+
+        kim.Kim.setup_project_directory_structure_if_needed = mock.Mock()
+        kim.Kim.check_lxb_destination = mock.Mock()
+        kim.Kim.copy_lxbs_to_project_directory = mock.Mock()
+        kim.Kim.make_jcsv_in_lxb_directory = mock.Mock()
+        kim.Kim.make_lims_database_updates = mock.Mock()
+        kim.rpf.rename_files = mock.Mock()
+
+        # IS NOT DEV
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.execute_command()
+        test_kim.setup_project_directory_structure_if_needed.assert_called_once
+        test_kim.check_lxb_destination.assert_called_once
+        test_kim.copy_lxbs_to_project_directory.assert_called_once
+        test_kim.make_jcsv_in_lxb_directory.assert_called_once
+        test_kim.make_lims_database_updates.assert_called_once
+        kim.rpf.rename_files.assert_called_once
+
+        # IS DEV
+        kim.Kim.setup_project_directory_structure_if_needed.reset_mock()
+        kim.Kim.check_lxb_destination.reset_mock()
+        kim.Kim.copy_lxbs_to_project_directory.reset_mock()
+        kim.Kim.make_jcsv_in_lxb_directory.reset_mock()
+        kim.Kim.make_lims_database_updates.reset_mock()
+        kim.rpf.rename_files.reset_mock()
+        kim.si.lpo.get_by_machine_barcode.return_value = None
+
+        (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
+        test_kim.execute_command()
+        test_kim.setup_project_directory_structure_if_needed.assert_called_once
+        test_kim.check_lxb_destination.assert_called_once
+        test_kim.copy_lxbs_to_project_directory.assert_called_once
+        test_kim.make_jcsv_in_lxb_directory.assert_called_once
+        test_kim.make_lims_database_updates.assert_not_called
+        kim.rpf.rename_files.assert_not_called
+
+
+        # TEAR DOWN
+        kim.Kim.setup_project_directory_structure_if_needed = OG_setup
+        kim.Kim.check_lxb_destination = OG_check_lxb
+        kim.Kim.copy_lxbs_to_project_directory = OG_copy_lxb
+        kim.Kim.make_jcsv_in_lxb_directory = OG_make_jcsv
+        kim.Kim.make_lims_database_updates = OG_lims_update
+        kim.rpf.rename_files = OG_rename
+
 
 
 if __name__ == "__main__":
