@@ -71,13 +71,14 @@ class Kim(si.ScanInfo):
         else:
             self.build_plate_values()
             self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
+
     def check_lxb_destination(self):
         if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
             logger.info("Found existing directory for plate -- deprecating")
             if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
                 os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
             shutil.move(self.destination_lxb_dir,
-                        os.path.join(self.destination_project_dir, "lxb", "deprecated", self.plate_search_name))
+                        os.path.join(self.destination_project_dir, "lxb", "deprecated", self.lims_plate_orm.det_plate))
 
         os.mkdir(self.destination_lxb_dir)
 
