@@ -152,7 +152,7 @@ class Kim(si.ScanInfo):
         self.make_jcsv_in_lxb_directory()
         if not self.is_dev:
             self.make_lims_database_updates()
-            rpf.rename_files(self.lims_plate_orm.det_plate, self.destination_lxb_dir)
+            rpf.rename_files(self.lims_plate_orm.det_plate, os.path.join(self.destination_project_dir, 'lxb'))
 
 
 if __name__ == '__main__':
