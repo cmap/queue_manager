@@ -28,7 +28,6 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-machine_barcode', required=True)
-    parser.add_argument('-plate_search_name', help='name to search for in archive directory')
     config_tools.add_options_to_override_config(parser, ['lxb2jcsv_path','hostname', 'archive_path','data_path'])
     config_tools.add_config_file_options_to_parser(parser)
     return parser
@@ -44,14 +43,12 @@ def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode, args.plate_search_name)
+    return Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
 
 class Kim(si.ScanInfo):
-    def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode, plate_search_name=None):
+    def __init__(self, cursor, archive_path, data_path, lxb2jcsv_path, machine_barcode):
         super(Kim, self).__init__(cursor, archive_path, machine_barcode)
-        if plate_search_name is not None:
-            self.plate_search_name = plate_search_name
-            self._get_lxb_path()
+
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
         self.check_for_dev()
@@ -69,8 +66,11 @@ class Kim(si.ScanInfo):
 
     def set_destination_dirs(self):
         self.destination_project_dir = os.path.join(self.base_data_path, 'DEV') if self.is_dev else os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
-        self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
-
+        if self.is_dev:
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.plate_search_name)
+        else:
+            self.build_plate_values()
+            self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
     def check_lxb_destination(self):
         if not os.path.exists(self.destination_lxb_dir):
             os.mkdir(self.destination_lxb_dir)
@@ -129,18 +129,20 @@ class Kim(si.ScanInfo):
 
         return outfile
 
-    def make_lims_database_updates(self):
+    def build_plate_values(self):
         # SET FIELD IN ORM OBJECT
         rna_plate_fields = [self.lims_plate_orm.pert_plate, self.lims_plate_orm.cell_id,
-                            str(self.lims_plate_orm.pert_time),
-                            self.lims_plate_orm.rep_num]
+                            self.lims_plate_orm.pert_time,
+                            self.lims_plate_orm.replicate]
         self.lims_plate_orm.rna_plate = "_".join(rna_plate_fields)
         self.lims_plate_orm.det_plate = self.lims_plate_orm.rna_plate + "_" + self.lims_plate_orm.bead_set
         self.lims_plate_orm.scan_det_plate = self.lims_plate_orm.original_barcode + "_" + self.lims_plate_orm.bead_set
+        return self.lims_plate_orm
+
+    def make_lims_database_updates(self):
 
         # USE ORM OBJECT TO UPDATE DATABASE
         self.lims_plate_orm.update_in_db(self.cursor)
-        return self.lims_plate_orm
 
     def execute_command(self):
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.

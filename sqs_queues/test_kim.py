@@ -14,6 +14,7 @@ OG_LPO_get = kim.si.lpo.get_by_machine_barcode
 OG_scan_num_lxbs = kim.Kim.get_num_lxbs_scanned
 OG_scan_last_lxb = kim.Kim.check_last_lxb_addition
 OG_mk_destination = kim.os.mkdir
+OG_build_plate = kim.Kim.build_plate_values
 
 test_barcode = 'test_barcode'
 
@@ -24,6 +25,7 @@ class TestKim(unittest.TestCase):
         kim.si.lpo.get_by_machine_barcode = mock.Mock()
         kim.Kim.get_num_lxbs_scanned = mock.Mock()
         kim.Kim.check_last_lxb_addition = mock.Mock()
+        kim.Kim.build_plate_values = mock.Mock(return_value=TestKim.create_lims_plate_orm())
 
     def setUp(self):
         kim.si.lpo.get_by_machine_barcode.return_value = TestKim.create_lims_plate_orm()
@@ -38,6 +40,7 @@ class TestKim(unittest.TestCase):
         kim.Kim.get_num_lxbs_scanned = OG_scan_num_lxbs
         kim.Kim.check_last_lxb_addition = OG_scan_last_lxb
         kim.os.mkdir = OG_mk_destination
+        kim.Kim.build_plate_values = OG_build_plate
 
     @staticmethod
     def build_args(machine_barcode):
@@ -54,7 +57,7 @@ class TestKim(unittest.TestCase):
         l.pert_plate = 'pertPlate'
         l.cell_id = 'cellId'
         l.pert_time = 'pertTime'
-        l.rep_num = 'repNum'
+        l.replicate = 'repNum'
         l.bead_set = 'beadSet'
         l.rna_plate = 'rna_plate'
         l.det_plate = 'det_plate'
@@ -265,18 +268,31 @@ class TestKim(unittest.TestCase):
         self.assertEqual(mk_jcsv_cmd, expected_cmd)
 
         kim.os.system = OG_cmd
+
+    def test_build_plate_values(self):
+        kim.Kim.build_plate_values = OG_build_plate
+
+        (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
+        test_kim.lims_plate_orm= TestKim.create_lims_plate_orm()
+        test_kim.build_plate_values()
+
+        updated_entry = test_kim.lims_plate_orm
+        self.assertEqual(updated_entry.rna_plate, 'pertPlate_cellId_pertTime_repNum')
+        self.assertEqual(updated_entry.det_plate, 'pertPlate_cellId_pertTime_repNum_beadSet')
+        self.assertEqual(updated_entry.scan_det_plate, 'original_barcode_beadSet')
+
+        kim.Kim.build_plate_values = mock.Mock()
+
     def test_make_lims_database_updates(self):
         cursor = mock.Mock()
         cursor.execute = mock.Mock()
 
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.cursor = cursor
-        updated_entry = test_kim.make_lims_database_updates()
+        test_kim.build_plate_values()
+        test_kim.make_lims_database_updates()
 
         cursor.execute.assert_called_once
-        self.assertEqual(updated_entry.rna_plate, 'pertPlate_cellId_pertTime_repNum')
-        self.assertEqual(updated_entry.det_plate, 'pertPlate_cellId_pertTime_repNum_beadSet')
-        self.assertEqual(updated_entry.scan_det_plate, 'original_barcode_beadSet')
 
         #todo reminder
         cursor_call = cursor.execute.call_args_list[0]
