@@ -92,7 +92,7 @@ class Kim(si.ScanInfo):
         return False
 
     def _num_lxbs_at_destination(self):
-        return len(glob.glob(os.path.join(self.destination_lxb_dir, self.plate_search_name, '*.lxb')))
+        return len(glob.glob(os.path.join(self.destination_lxb_dir, '*.lxb')))
 
     def copy_lxbs_to_project_directory(self):
         # MOVE ALL LXBs FROM ARCHIVE LOCATION
@@ -111,7 +111,7 @@ class Kim(si.ScanInfo):
         return True
 
     def _jcsv_at_destination(self):
-        return os.path.exists(os.path.join(self.destination_lxb_dir, self.lims_plate_orm.det_plate, "*.jcsv"))
+        return os.path.exists(os.path.join(self.destination_lxb_dir, "*.jcsv"))
 
     def make_jcsv_in_lxb_directory(self):
         filename = self.plate_search_name + ".jcsv"
