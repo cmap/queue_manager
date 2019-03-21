@@ -102,6 +102,8 @@ class JobManager(object):
         except Exception as e:
             self.flag_job(cursor)
 
+        self.finish_job()
+
     def flag_job(self, cursor):
         if self.job_entry is not None:
             self.job_entry.toggle_flag(cursor)
