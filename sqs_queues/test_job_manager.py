@@ -1,5 +1,6 @@
 import unittest
 import mock
+import os
 import logging
 import sqs_queues.job_manager as jm
 import sqs_queues.yeezy as yeezy
@@ -17,6 +18,16 @@ test_barcode='806090'
 OG_Config_read = jm.ConfigParser.ConfigParser.read
 OG_Config_items = jm.ConfigParser.ConfigParser.items
 
+def find_queue_manager_config():
+    current_location = os.getcwd()
+    for root, dirs, files in os.walk(current_location):
+        if "queue_manager.cfg" in files:
+            return os.path.join(root, "queue_manager.cfg")
+
+DEFAULT_CONFIG_PATH = find_queue_manager_config()
+
+
+
 class TestJobManager(unittest.TestCase):
 
 
@@ -32,7 +43,7 @@ class TestJobManager(unittest.TestCase):
 
     @staticmethod
     def common_job_manager_setup(queue=test_queue, jenkins_id=test_jenkins_id):
-        j = jm.JobManager(queue, jenkins_id, queue_manager_config_filepath='./queue_manager.cfg')
+        j = jm.JobManager(queue, jenkins_id, queue_manager_config_filepath=DEFAULT_CONFIG_PATH)
         return j
 
     def test__init__(self):
