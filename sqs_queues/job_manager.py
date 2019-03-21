@@ -97,12 +97,14 @@ class JobManager(object):
         self.update_job_table(cursor)
         try:
             self.job.execute_command()
+        except qmExceptions.YeezyReportsScanNotDone:
+            pass
         except Exception as e:
-            self.flag_job()
+            self.flag_job(cursor)
 
-    def flag_job(self):
+    def flag_job(self, cursor):
         if self.job_entry is not None:
-            self.job_entry.toggle_flag()
+            self.job_entry.toggle_flag(cursor)
 
     def finish_job(self):
         next_queue_index = self.queue_workflow_info.index(self.queue) + 1
