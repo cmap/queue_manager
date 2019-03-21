@@ -68,6 +68,9 @@ class TestRoastCommander(unittest.TestCase):
 
     def test__build_command(self):
         (test_rc, args) = TestRoastCommander.common_roast_commander_setup(test_barcode)
+        test_rc.command = None
+
+        test_rc._build_command()
         expected_command = """nohup matlab -nodesktop -nosplash -r "cd /cmap/tools/jenkins/job_repos/espresso/roast; roast('clean', true,
                             'plate', 'test_det_plate',
                             'plate_path', '/cmap/obelix/pod/custom/TEST/roast',

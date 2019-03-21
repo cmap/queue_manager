@@ -284,19 +284,32 @@ class TestKim(unittest.TestCase):
         kim.Kim.build_plate_values = mock.Mock()
 
     def test_make_lims_database_updates(self):
-        cursor = mock.Mock()
+        cursor = mock.Mock(rowcount=1)
         cursor.execute = mock.Mock()
+
 
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.cursor = cursor
+
+        # HAPPY CONDITION - UPDATE MADE TO DATABASE
+        test_kim.db = mock.Mock()
+        test_kim.db.commit=mock.Mock()
         test_kim.build_plate_values()
         test_kim.make_lims_database_updates()
 
-        cursor.execute.assert_called_once
+        cursor.execute.assert_called_once()
+        test_kim.db.commit.assert_called_once()
 
-        #todo reminder
-        cursor_call = cursor.execute.call_args_list[0]
-        logger.warning("add test for cursor.statement {}".format(cursor_call))
+        # SETUP MOCKS FOR NEXT TEST
+        cursor.execute.reset_mock()
+        cursor = mock.Mock(rowcount=0)
+        test_kim.cursor = cursor
+
+        # UNHAPPY CONDITION - NO UPDATE MADE TO DATABASE
+        with self.assertRaises(kim.qmExceptions.FailureOccurredDuringProcessing):
+            test_kim.make_lims_database_updates()
+            cursor.execute.assert_called_once()
+
 
     def test_make_job(self):
         args = TestKim.build_args(test_barcode)

@@ -33,34 +33,32 @@ def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    j = QueueManager(queue=args.queue, jenkins_id=args.jenkins_id, queue_manager_config_filepath=args.queue_manager_config_filepath)
+    j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, queue_manager_config_filepath=args.queue_manager_config_filepath)
+    j.get_message()
 
     if j.work_to_do:
         j.start_job(cursor)
 
-class QueueManager(object):
-    def __init__(self, queue, jenkins_id, queue_manager_config_filepath='~/queue_manager.cfg'):
-        self.work_to_do = True
+class JobManager(object):
+    def __init__(self, queue, jenkins_id, queue_manager_config_filepath='./queue_manager.cfg'):
+        self.work_to_do = False
         self.queue = queue
         self.jenkins_id = jenkins_id
         self.job_entry = None
         self.queue_manager_config_filepath = queue_manager_config_filepath
-        self.queue_config = self.get_queue_config()
-        # self.get_message()
-        # if self.message is not None:
-        #     self.work_to_do = True
+        self._get_queue_config()
 
     def get_message(self):
         self.message = sqs_utils.receive_message_from_sqs_queue(self.queue_config['queue_url'])
+        if self.message is not None:
+            self.work_to_do = True
 
-    def get_queue_config(self):
+    def _get_queue_config(self):
         cp = ConfigParser.ConfigParser()
         if os.path.exists(self.queue_manager_config_filepath):
             cp.read(self.queue_manager_config_filepath)
-            self.queue_workflow_info = dict(cp.items("workflow info"))
-            queue_config = dict(cp.items(self.queue))
-            return queue_config
-
+            self.queue_workflow_info = eval(cp.get("workflow info", "workflow"))
+            self.queue_config = dict(cp.items(self.queue))
         else:
             raise qmExceptions.NoConfigFileExistsAtGivenLocation(
                 "Invalid Config Location: {}".format(self.queue_manager_config_filepath))
@@ -81,32 +79,35 @@ class QueueManager(object):
             cursor.execute(unlinked_plate_insert_statement, (self.message.machine_barcode, "unresolved"))
             sqs_utils.consume_message_from_sqs_queue(self.message)
         else:
-            raise qmExceptions.UnassociatedPlateMadeItPastKim("Plate {} found in {} queue".format(self.message.machine_barcode, self.queue))
+            raise qmExceptions.UnassociatedPlateMadeItPastKim("Plate {} found in {} queue has no entry in LIMS database D:<".format(self.message.machine_barcode, self.queue))
 
-    def start_job(self, cursor):
+    def _make_job(self):
         # self.update_job_table(cursor)
-        queue_job = importlib.import_module(self.queue_config["job"].tolower())
+        queue_job = importlib.import_module(self.queue_config["job"].lower())
         job_args_parser = getattr(queue_job, "build_parser")
         job_args = job_args_parser().parse_args(['-machine_barcode', self.message.machine_barcode])
         config_tools.add_config_file_settings_to_args(job_args)
         logger.info("job args: {}".format(job_args))
 
         make_job = getattr(queue_job, "make_job")
-        jobObj = make_job(job_args)
+        self.job = make_job(job_args)
+
+    def start_job(self, cursor):
+        self._make_job()
+        self.update_job_table(cursor)
         try:
-            jobObj.execute_command()
-        except:
+            self.job.execute_command()
+        except Exception as e:
             self.flag_job()
 
     def flag_job(self):
         if self.job_entry is not None:
             self.job_entry.toggle_flag()
 
-
     def finish_job(self):
         next_queue_index = self.queue_workflow_info['workflow'].index(self.queue) + 1
         self.queue = self.queue_workflow_info['workflow'][next_queue_index]
-        next_queue_config = self.get_queue_config()
+        next_queue_config = self._get_queue_config()
         self.message.pass_to_next_queue(next_queue_config)
 
 

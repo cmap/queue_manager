@@ -75,8 +75,9 @@ class Kim(si.ScanInfo):
             logger.info("Found existing directory for plate -- deprecating")
             if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
                 os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
+
             shutil.move(self.destination_lxb_dir,
-                        os.path.join(self.destination_project_dir, "lxb", "deprecated", self.lims_plate_orm.det_plate))
+                        os.path.join(self.destination_project_dir, "lxb", "deprecated", os.path.basename(self.destination_lxb_dir)))
 
         os.mkdir(self.destination_lxb_dir)
 
@@ -124,7 +125,7 @@ class Kim(si.ScanInfo):
         except Exception as e:
             logger.exception("failed to make_csv.  stacktrace:  ")
             raise qmExceptions.FailureOccuredDuringProcessing(e)
-
+        #TODO: should we check retval?
         return outfile
 
     def build_plate_values(self):
@@ -141,6 +142,8 @@ class Kim(si.ScanInfo):
 
         # USE ORM OBJECT TO UPDATE DATABASE
         self.lims_plate_orm.update_in_db(self.cursor)
+        if self.cursor.rowcount != 1:
+            raise qmExceptions.FailureOccurredDuringProcessing("Statement: {}  Failed to update LIMS database for plate {}".format(self.cursor.statement, self.lims_plate_orm.det_plate))
         self.db.commit()
 
     def execute_command(self):

@@ -15,7 +15,6 @@ logger = logging.getLogger(setup_logger.LOGGER_NAME)
 class ScanInfo(object):
     def __init__(self, db, archive_path, machine_barcode):
         self.db = db
-        self.cursor = self.db.cursor()
         self.archive_path = archive_path
         self.lxb_path = None
         self.num_lxbs_scanned = None
