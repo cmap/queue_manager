@@ -2,9 +2,12 @@ import unittest
 import mock
 import os
 import logging
+import types
+
+
 import sqs_queues.job_manager as jm
-import sqs_queues.yeezy as yeezy
-import sqs_queues.kim as kim
+from sqs_queues.yeezy import Yeezy
+from  sqs_queues.kim import Kim
 import sqs_queues.roastcommander as roastcommander
 import sqs_queues.brewcommander as brewcommander
 
@@ -151,25 +154,61 @@ class TestJobManager(unittest.TestCase):
         jm.sqs_utils.consume_message_from_sqs_queue = OG_consume_message
 
     def test__make_job(self):
-        all_jobs = (yeezy.Yeezy, kim.Kim, roastcommander.RoastCommander, brewcommander.BrewCommander)
         for queue in TestJobManager.common_job_manager_setup().queue_workflow_info:
             logger.debug("queue: {}".format(queue))
-            job = TestJobManager.common_job_manager_setup(queue=queue)
-            job.message = mock.Mock(machine_barcode=test_barcode)
-            job._make_job()
+            if queue == "validator" or queue == "brew":
+                continue
+            jobm = TestJobManager.common_job_manager_setup(queue=queue)
+            jobm.message = mock.Mock(machine_barcode=test_barcode)
+            jobm._make_job()
+            self.assertIsNotNone(jobm.job)
+            self.assertTrue(hasattr(jobm.job, "execute_command"), "queue: {} has no execute_command ".format(queue))
+            self.assertEqual(jobm.job.__class__.__name__,  jobm.queue_config["job"])
 
-    def start_job(self):
-        job = TestJobManager.common_job_manager_setup()
-
-        job.update_job_table = mock.Mock()
-
-        # HAPPY PATH YEEZY
-        job._make_job = mock.Mock()
-        job.job.execute_command()
-        pass
+    def test_start_job(self):
+        cursor = mock.Mock()
+        for queue in TestJobManager.common_job_manager_setup().queue_workflow_info:
+            logger.debug("queue: {}".format(queue))
+            if queue == "validator" or queue == "brew":
+                continue
+            jobm = TestJobManager.common_job_manager_setup(queue=queue)
+            jobm.message = mock.Mock(machine_barcode=test_barcode)
+            jobm.update_job_table = mock.Mock()
+            # jobm._make_job()
+            # jobm.job.execute_command = mock.Mock()
+            jobm.start_job(cursor)
+            # logger.debug("command executed {}".format(jobm.job.execute_command.call_args_list))
 
     def test_flag_job(self):
-        pass
+
+        OG_JE = jm.jobs.JobsOrm.toggle_flag
+        jm.jobs.JobsOrm.toggle_flag = mock.Mock()
+
+        test_job = TestJobManager.common_job_manager_setup()
+        test_job.job_entry = mock.Mock(return_value=jm.jobs.JobsOrm.toggle_flag)
+
+        # HAPPY PATH
+        test_job.flag_job()
+        jm.jobs.JobsOrm.toggle_flag.assert_called_once()
+
+        jm.jobs.JobsOrm.toggle_flag.reset_mock()
+        # UNHAPPY PATH NO JOB ENTRY
+        test_job.job_entry.return_value = None
+        test_job.flag_job()
+        jm.jobs.JobsOrm.toggle_flag.assert_not_called()
+
+        jm.jobs.JobsOrm.toggle_flag = OG_JE
+
+    def test_finish_job(self):
+        jm.sqs_utils.Message.pass_to_next_queue = mock.Mock()
+
+        test_job = TestJobManager.common_job_manager_setup(queue="yeezy")
+        test_job.message = mock.Mock(machine_barcode=test_barcode)
+        test_job.finish_job()
+        logger.debug( jm.sqs_utils.Message.pass_to_next_queue.call_args_list)
+        jm.sqs_utils.Message.pass_to_next_queue.assert_called_once
+
+
 
 if __name__ == '__main__':
     setup_logger.setup(verbose=True)

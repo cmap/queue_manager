@@ -105,8 +105,8 @@ class JobManager(object):
             self.job_entry.toggle_flag()
 
     def finish_job(self):
-        next_queue_index = self.queue_workflow_info['workflow'].index(self.queue) + 1
-        self.queue = self.queue_workflow_info['workflow'][next_queue_index]
+        next_queue_index = self.queue_workflow_info.index(self.queue) + 1
+        self.queue = self.queue_workflow_info[next_queue_index]
         next_queue_config = self._get_queue_config()
         self.message.pass_to_next_queue(next_queue_config)
 
