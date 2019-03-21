@@ -50,7 +50,7 @@ class TestJobManager(unittest.TestCase):
         job = TestJobManager.common_job_manager_setup()
         self.assertEqual(job.queue, test_queue)
         self.assertEqual(job.jenkins_id, test_jenkins_id)
-        self.assertEqual(job.queue_manager_config_filepath, './queue_manager.cfg')
+        self.assertEqual(job.queue_manager_config_filepath, DEFAULT_CONFIG_PATH)
         self.assertFalse(job.work_to_do)
         self.assertIsNone(job.job_entry)
         self.assertIsNotNone(job.queue_config)
@@ -131,6 +131,7 @@ class TestJobManager(unittest.TestCase):
         jm.sqs_utils.consume_message_from_sqs_queue = mock.Mock()
 
         for queue in TestJobManager.common_job_manager_setup().queue_workflow_info:
+            logger.debug("queue: {}".format(queue))
             job = TestJobManager.common_job_manager_setup(queue=queue)
             job.message = mock.Mock(machine_barcode='fake_machine_barcode')
             if queue == "yeezy":
@@ -152,6 +153,7 @@ class TestJobManager(unittest.TestCase):
     def test__make_job(self):
         all_jobs = (yeezy.Yeezy, kim.Kim, roastcommander.RoastCommander, brewcommander.BrewCommander)
         for queue in TestJobManager.common_job_manager_setup().queue_workflow_info:
+            logger.debug("queue: {}".format(queue))
             job = TestJobManager.common_job_manager_setup(queue=queue)
             job.message = mock.Mock(machine_barcode=test_barcode)
             job._make_job()
