@@ -32,7 +32,7 @@ class TestJobManager(unittest.TestCase):
 
     @staticmethod
     def common_job_manager_setup(queue=test_queue, jenkins_id=test_jenkins_id):
-        j = jm.JobManager(queue, jenkins_id)
+        j = jm.JobManager(queue, jenkins_id, queue_manager_config_filepath='./queue_manager.cfg')
         return j
 
     def test__init__(self):
