@@ -98,8 +98,10 @@ class JobManager(object):
         try:
             self.job.execute_command()
         except qmExceptions.YeezyReportsScanNotDone:
+            logger.info("Yeezy reported {} plate is not finished scanning".format(self.plate))
             pass
         except Exception as e:
+            logger.warning("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(cursor)
 
         self.finish_job()
