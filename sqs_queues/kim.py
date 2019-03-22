@@ -46,7 +46,7 @@ def make_job(args):
 class Kim(si.ScanInfo):
     def __init__(self, db, archive_path, data_path, lxb2jcsv_path, machine_barcode):
         super(Kim, self).__init__(db, archive_path, machine_barcode)
-
+        print self.lims_plate_orm
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
         self.check_for_dev()
@@ -71,6 +71,7 @@ class Kim(si.ScanInfo):
             self.destination_lxb_dir = os.path.join(self.destination_project_dir, 'lxb', self.lims_plate_orm.det_plate)
 
     def check_lxb_destination(self):
+        # IF DESTINATION DIR EXISTS AND CONTAINS FILES, DEPRECATE
         if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
             logger.info("Found existing directory for plate -- deprecating")
             if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
@@ -139,11 +140,11 @@ class Kim(si.ScanInfo):
         return self.lims_plate_orm
 
     def make_lims_database_updates(self):
-
+        cursor = self.db.cursor()
         # USE ORM OBJECT TO UPDATE DATABASE
-        self.lims_plate_orm.update_in_db(self.cursor)
-        if self.cursor.rowcount != 1:
-            raise qmExceptions.FailureOccurredDuringProcessing("Statement: {}  Failed to update LIMS database for plate {}".format(self.cursor.statement, self.lims_plate_orm.det_plate))
+        self.lims_plate_orm.update_in_db(cursor)
+        if cursor.rowcount != 1:
+            raise qmExceptions.FailureOccurredDuringProcessing("Statement: {}  Failed to update LIMS database for plate {}".format(cursor.statement, self.lims_plate_orm.det_plate))
         self.db.commit()
 
     def execute_command(self):
