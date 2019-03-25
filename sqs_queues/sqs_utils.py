@@ -61,7 +61,7 @@ def receive_message_from_sqs_queue(queue_url):
 
     response = SQS.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
 
-    if response['Messages']:
+    if response:
         m = Message(response['Messages'][0], queue_url)
         return m
 

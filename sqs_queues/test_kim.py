@@ -73,6 +73,8 @@ class TestKim(unittest.TestCase):
 
         test = kim.Kim(cursor, args.archive_path, args.data_path, args.lxb2jcsv_path, args.machine_barcode)
         print test
+        test.check_for_dev()
+        test.set_destination_dirs()
         return (test, args)
 
     def test__init__(self):
@@ -154,8 +156,8 @@ class TestKim(unittest.TestCase):
 
 
         kim.os.path.exists.assert_called_with(test_kim.destination_project_dir + "/lxb/deprecated")
-        kim.Kim._jcsv_at_destination.assert_called_once
-        kim.Kim._num_lxbs_at_destination.assert_called_once
+        kim.Kim._jcsv_at_destination.assert_called_once()
+        kim.Kim._num_lxbs_at_destination.assert_called_once()
         kim.shutil.move.assert_called_with(test_kim.destination_lxb_dir, test_kim.destination_project_dir+"/lxb/deprecated/"+test_kim.plate_search_name)
         kim.os.mkdir.assert_called_with(test_kim.destination_lxb_dir)
 
@@ -198,7 +200,7 @@ class TestKim(unittest.TestCase):
         setup_dir = test_kim.setup_project_directory_structure_if_needed()
 
         self.assertFalse(setup_dir)
-        kim.os.mkdir.assert_not_called
+        kim.os.mkdir.assert_not_called()
 
         # UNHAPPY CONDITION
         kim.os.path.exists.return_value = False
@@ -206,7 +208,7 @@ class TestKim(unittest.TestCase):
         setup_dir = test_kim.setup_project_directory_structure_if_needed()
 
         self.assertTrue(setup_dir)
-        kim.os.mkdir.assert_called
+        kim.os.mkdir.assert_called()
         mkdir_calls = kim.os.mkdir.call_args_list
         expected_calls = [mock.call("this_path_dne"), mock.call("this_path_dne/lxb"), mock.call("this_path_dne/map_src"),
                           mock.call("this_path_dne/maps"), mock.call("this_path_dne/roast"), mock.call("this_path_dne/brew"),
@@ -233,7 +235,7 @@ class TestKim(unittest.TestCase):
 
         # VALIDATE GLOB
         self.assertTrue(result)
-        kim.glob.glob.assert_called_once
+        kim.glob.glob.assert_called_once()
         glob_args = kim.glob.glob.call_args_list[0]
         self.assertEqual(glob_args, mock.call(os.path.join(args.archive_path,'lxb/det_plate*/*.lxb')))
 
@@ -262,7 +264,7 @@ class TestKim(unittest.TestCase):
         self.assertEqual(outfile, expected_outfile)
 
         # VALIDATE CMD
-        kim.os.system.assert_called_once
+        kim.os.system.assert_called_once()
         mk_jcsv_cmd = kim.os.system.call_args_list[0]
         expected_cmd = mock.call("{} -i {} -o {}".format(args.lxb2jcsv_path, test_kim.destination_lxb_dir, expected_outfile))
         self.assertEqual(mk_jcsv_cmd, expected_cmd)
@@ -341,12 +343,12 @@ class TestKim(unittest.TestCase):
         # IS NOT DEV
         (test_kim, args) = TestKim.common_setup_kim('machine_barcode')
         test_kim.execute_command()
-        test_kim.setup_project_directory_structure_if_needed.assert_called_once
-        test_kim.check_lxb_destination.assert_called_once
-        test_kim.copy_lxbs_to_project_directory.assert_called_once
-        test_kim.make_jcsv_in_lxb_directory.assert_called_once
-        test_kim.make_lims_database_updates.assert_called_once
-        kim.rpf.rename_files.assert_called_once
+        test_kim.setup_project_directory_structure_if_needed.assert_called_once()
+        test_kim.check_lxb_destination.assert_called_once()
+        test_kim.copy_lxbs_to_project_directory.assert_called_once()
+        test_kim.make_jcsv_in_lxb_directory.assert_called_once()
+        test_kim.make_lims_database_updates.assert_called_once()
+        kim.rpf.rename_files.assert_called_once()
 
         # IS DEV
         kim.Kim.setup_project_directory_structure_if_needed.reset_mock()
@@ -359,12 +361,12 @@ class TestKim(unittest.TestCase):
 
         (test_kim, args) = TestKim.common_setup_kim('DEV_plate')
         test_kim.execute_command()
-        test_kim.setup_project_directory_structure_if_needed.assert_called_once
-        test_kim.check_lxb_destination.assert_called_once
-        test_kim.copy_lxbs_to_project_directory.assert_called_once
-        test_kim.make_jcsv_in_lxb_directory.assert_called_once
-        test_kim.make_lims_database_updates.assert_not_called
-        kim.rpf.rename_files.assert_not_called
+        test_kim.setup_project_directory_structure_if_needed.assert_called_once()
+        test_kim.check_lxb_destination.assert_called_once()
+        test_kim.copy_lxbs_to_project_directory.assert_called_once()
+        test_kim.make_jcsv_in_lxb_directory.assert_called_once()
+        test_kim.make_lims_database_updates.assert_not_called()
+        kim.rpf.rename_files.assert_not_called()
 
 
         # TEAR DOWN

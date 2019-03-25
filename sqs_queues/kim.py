@@ -46,11 +46,9 @@ def make_job(args):
 class Kim(si.ScanInfo):
     def __init__(self, db, archive_path, data_path, lxb2jcsv_path, machine_barcode):
         super(Kim, self).__init__(db, archive_path, machine_barcode)
-        print self.lims_plate_orm
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
-        self.check_for_dev()
-        self.set_destination_dirs()
+
 
     def check_for_dev(self):
         if self.lims_plate_orm is not None:
@@ -148,6 +146,8 @@ class Kim(si.ScanInfo):
         self.db.commit()
 
     def execute_command(self):
+        self.check_for_dev()
+        self.set_destination_dirs()
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
         self.setup_project_directory_structure_if_needed()
         self.check_lxb_destination()
