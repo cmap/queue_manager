@@ -46,6 +46,7 @@ def make_job(args):
 class Kim(si.ScanInfo):
     def __init__(self, db, archive_path, data_path, lxb2jcsv_path, machine_barcode):
         super(Kim, self).__init__(db, archive_path, machine_barcode)
+        print self.lims_plate_orm
         self.base_data_path = data_path
         self.lxb2jcsv_path = lxb2jcsv_path
 
@@ -160,7 +161,7 @@ class Kim(si.ScanInfo):
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
-    config_tools.add_config_file_settings_to_args(args)
+    config_tools.use_config_file_settings_to_override_defaults(args)
 
     setup_logger.setup(verbose=True)
 
