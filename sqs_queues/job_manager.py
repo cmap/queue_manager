@@ -88,8 +88,8 @@ class JobManager(object):
         # self.update_job_table(cursor)
         queue_job = importlib.import_module(self.queue_config["job"].lower())
         job_args_parser = getattr(queue_job, "build_parser")
-        job_args = job_args_parser().parse_args(['-config_filepath', self.config_filepath,
-                                                 '-config_section', self.config_section,
+        job_args = job_args_parser().parse_args(['--config_filepath', self.config_filepath,
+                                                 '--config_section', self.config_section,
                                                  '-machine_barcode', self.message.machine_barcode])
         config_tools.add_config_file_settings_to_args(job_args)
         logger.info("job args: {}".format(job_args))
