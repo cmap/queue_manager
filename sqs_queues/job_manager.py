@@ -33,7 +33,8 @@ def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, config_filepath=args.config_filepath, queue_manager_config_filepath=args.queue_manager_config_filepath)
+    j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, config_filepath=args.config_filepath,
+                   config_section=args.config_section, queue_manager_config_filepath=args.queue_manager_config_filepath)
     j.get_message()
 
     if j.work_to_do:
