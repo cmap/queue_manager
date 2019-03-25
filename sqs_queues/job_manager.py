@@ -31,14 +31,14 @@ def build_parser():
 
 def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
-    cursor = db.cursor()
+    #cursor = db.cursor()
 
     j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, config_filepath=args.config_filepath,
                    config_section=args.config_section, queue_manager_config_filepath=args.queue_manager_config_filepath)
     j.get_message()
 
     if j.work_to_do:
-        j.start_job(cursor)
+        j.start_job(db)
 
 class JobManager(object):
     def __init__(self, queue, jenkins_id, config_filepath, config_section, queue_manager_config_filepath='./queue_manager.cfg'):
@@ -69,7 +69,7 @@ class JobManager(object):
     def update_job_table(self, cursor):
         self.plate = lpo.get_by_machine_barcode(cursor, self.message.machine_barcode)
         if self.plate is not None:
-            self.job_entry = jobs.update_or_create_job_entry(cursor, machine_barcode=self.message.machine_barcode,
+            self.job_entry = jobs.update_or_create_job_entry(cursor, machine_barcode=self.plate.machine_barcode,
                                             queue=self.queue, jenkins_id=self.jenkins_id)
         else:
             self.handle_unlinked_plate(cursor)
@@ -97,7 +97,8 @@ class JobManager(object):
         make_job = getattr(queue_job, "make_job")
         self.job = make_job(job_args)
 
-    def start_job(self, cursor):
+    def start_job(self, db):
+        cursor = db.cursor()
         self._make_job()
         self.update_job_table(cursor)
         try:
