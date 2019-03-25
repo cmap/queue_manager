@@ -18,12 +18,13 @@ class ScanInfo(object):
         self.archive_path = archive_path
         self.lxb_path = None
         self.num_lxbs_scanned = None
-
-        self.lims_plate_orm = lpo.get_by_machine_barcode(self.db.cursor(), machine_barcode)
+        cursor = self.db.cursor()
+        self.lims_plate_orm = lpo.get_by_machine_barcode(cursor, machine_barcode)
 
         if self.lims_plate_orm:
             self.plate_search_name = self.lims_plate_orm.det_plate
         else:
+            logger.info("Unable to find plate {} in LIMS".format(machine_barcode))
             self.plate_search_name = machine_barcode
 
         self._get_lxb_path()

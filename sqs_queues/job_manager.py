@@ -104,7 +104,7 @@ class JobManager(object):
             self.job.execute_command()
         except qmExceptions.YeezyReportsScanNotDone:
             logger.info("Yeezy reported {} plate is not finished scanning".format(self.plate))
-            pass
+            return
         except Exception as e:
             logger.warning("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(cursor)
@@ -125,7 +125,7 @@ class JobManager(object):
 
 if __name__ == "__main__":
     args = build_parser().parse_args(sys.argv[1:])
-    config_tools.add_config_file_settings_to_args(args)
+    config_tools.use_config_file_settings_to_override_defaults(args)
 
     setup_logger.setup(verbose=True)
 
