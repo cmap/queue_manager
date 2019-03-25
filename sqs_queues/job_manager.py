@@ -33,18 +33,20 @@ def main(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
-    j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, queue_manager_config_filepath=args.queue_manager_config_filepath)
+    j = JobManager(queue=args.queue, jenkins_id=args.jenkins_id, config_filepath=args.config_filepath, queue_manager_config_filepath=args.queue_manager_config_filepath)
     j.get_message()
 
     if j.work_to_do:
         j.start_job(cursor)
 
 class JobManager(object):
-    def __init__(self, queue, jenkins_id, queue_manager_config_filepath='./queue_manager.cfg'):
+    def __init__(self, queue, jenkins_id, config_filepath, config_section, queue_manager_config_filepath='./queue_manager.cfg'):
         self.work_to_do = False
         self.queue = queue
         self.jenkins_id = jenkins_id
         self.job_entry = None
+        self.config_filepath = config_filepath
+        self.config_section = config_section
         self.queue_manager_config_filepath = queue_manager_config_filepath
         self._get_queue_config()
 
@@ -85,7 +87,9 @@ class JobManager(object):
         # self.update_job_table(cursor)
         queue_job = importlib.import_module(self.queue_config["job"].lower())
         job_args_parser = getattr(queue_job, "build_parser")
-        job_args = job_args_parser().parse_args(['-machine_barcode', self.message.machine_barcode])
+        job_args = job_args_parser().parse_args(['-config_filepath', self.config_filepath,
+                                                 '-config_section', self.config_section,
+                                                 '-machine_barcode', self.message.machine_barcode])
         config_tools.add_config_file_settings_to_args(job_args)
         logger.info("job args: {}".format(job_args))
 
