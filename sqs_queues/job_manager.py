@@ -91,7 +91,7 @@ class JobManager(object):
         job_args = job_args_parser().parse_args(['--config_filepath', self.config_filepath,
                                                  '--config_section', self.config_section,
                                                  '-machine_barcode', self.message.machine_barcode])
-        config_tools.add_config_file_settings_to_args(job_args)
+        config_tools.use_config_file_settings_to_override_defaults(job_args)
         logger.info("job args: {}".format(job_args))
 
         make_job = getattr(queue_job, "make_job")
