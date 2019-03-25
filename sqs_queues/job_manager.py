@@ -66,11 +66,13 @@ class JobManager(object):
             raise qmExceptions.NoConfigFileExistsAtGivenLocation(
                 "Invalid Config Location: {}".format(self.queue_manager_config_filepath))
 
-    def update_job_table(self, cursor):
+    def update_job_table(self, db):
+        cursor = db.cursor()
         self.plate = lpo.get_by_machine_barcode(cursor, self.message.machine_barcode)
         if self.plate is not None:
             self.job_entry = jobs.update_or_create_job_entry(cursor, machine_barcode=self.plate.machine_barcode,
                                             queue=self.queue, jenkins_id=self.jenkins_id)
+            db.commit()
         else:
             self.handle_unlinked_plate(cursor)
 
@@ -100,7 +102,7 @@ class JobManager(object):
     def start_job(self, db):
         cursor = db.cursor()
         self._make_job()
-        self.update_job_table(cursor)
+        self.update_job_table(db)
         try:
             self.job.execute_command()
         except qmExceptions.YeezyReportsScanNotDone:
@@ -108,13 +110,16 @@ class JobManager(object):
             return
         except Exception as e:
             logger.warning("Exception {} raised for plate {}".format(e, self.plate))
-            self.flag_job(cursor)
+            self.flag_job(db)
 
         self.finish_job()
 
-    def flag_job(self, cursor):
+    def flag_job(self, db):
+        cursor = db.cursor()
         if self.job_entry is not None:
             self.job_entry.toggle_flag(cursor)
+            db.commit()
+
 
     def finish_job(self):
         next_queue_index = self.queue_workflow_info.index(self.queue) + 1
