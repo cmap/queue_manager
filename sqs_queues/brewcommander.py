@@ -83,8 +83,8 @@ class BrewCommander(CommanderTemplate):
 
         self.replicate_set_list = replicate_set_list
 
-        self.project_id = self.replicate_set_list[0].project_code
-        self.replicate_set_name = self.replicate_set_list[0].brew_prefix
+        self.project_id = self.replicate_set_list[0].lims_plate_orm.project_code
+        self.replicate_set_name = self.replicate_set_list[0].lims_plate_orm.brew_prefix
         self.zmad_ref = zmad_ref
         self.group_by = group_by
         self.do_deprecate = deprecate
