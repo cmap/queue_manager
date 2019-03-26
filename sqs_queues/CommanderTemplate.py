@@ -1,4 +1,4 @@
-import subprocess
+import os
 import sqs_queues.exceptions as qmExceptions
 
 
@@ -14,8 +14,8 @@ class CommanderTemplate(object):
 
     def execute_command(self):
         try:
-            out = subprocess.check_output(self.command, stderr=subprocess.STDOUT, shell=True)
-        except subprocess.CalledProcessError as e:
+            out = os.system(self.command)
+        except Exception as e:
             raise qmExceptions.FailureOccurredDuringProcessing(e)
 
         return out

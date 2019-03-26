@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 import shutil
-import subprocess
 import sys
 
 import caldaia.utils.mysql_utils as mu
@@ -46,7 +45,7 @@ def main(args):
     try:
         output = this.execute_command()
         logger.info(output)
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         logger.exception(e)
 
 def make_job(args):
