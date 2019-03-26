@@ -73,7 +73,7 @@ def make_job(args):
     cursor = db.cursor()
 
     replicate_set_list = rspo.get_replicate_set_plate_orms_in_rep_set_by_replicate_set_id(cursor, args.replicate_set_id)
-    return BrewCommander(cursor, args.data_path, args.espresso_path, replicate_set_list, args.zmad_rep, args.group_by, args.deprecate)
+    return BrewCommander(cursor, args.data_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
 
 
 class BrewCommander(CommanderTemplate):
