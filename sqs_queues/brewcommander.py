@@ -105,8 +105,6 @@ class BrewCommander(CommanderTemplate):
         self.plate_grp_file = os.path.join(self.brew_cmd_dir, "{}_plates.grp".format(self.replicate_set_name))
         logger.debug("plate_grp_file:  {}".format(self.plate_grp_file))
 
-        self.brew_cmd_file = os.path.join(self.brew_cmd_dir,"{}_brew_cmd.m".format(self.replicate_set_name))
-
     def _check_for_preexisting_brew(self):
         if os.path.exists(self.replicate_brew_dir_path):
             if self.do_deprecate:
@@ -124,29 +122,16 @@ class BrewCommander(CommanderTemplate):
                     include_grp.write("\n".join(replicate.lims_plate_orm.det_plate) + "\n")
 
     def _build_command(self):
-        cd_cmd = "cd {}".format(os.path.join(self.espresso_path, "brew"))
+        cd_cmd = '"cd {}'.format(os.path.join(self.espresso_path, "brew"))
 
-        brew_cmd = """brew('plate', '{plate}', ...
-                   'plate_path', '{plate_path}', ...
-                   'brew_path', '{brew_path}', ...
-                   'group_by', '{group_by}', ...
-                   'zmad_ref', '{zmad_ref}', ...
-                   'filter_vehicle', 'false', ...
-                   'clean', true, ...
-                   'include','{include_grp}')""".format(plate=self.plate_grp_file, plate_path=self.plate_path, brew_path=self.brew_path,
-                                                        group_by=self.group_by, zmad_ref=("ZS" + self.zmad_ref.upper()), include_grp=self.plate_grp_file)
-        full_cmd = """
-               {cd_cmd}
+        brew_cmd = "brew('plate', '{plate}', 'plate_path', '{plate_path}','brew_path', '{brew_path}', 'group_by', '{group_by}','zmad_ref', '{zmad_ref}', 'filter_vehicle', 'false', 'clean', true, 'include','{include_grp}')".format(
+            plate=self.plate_grp_file, plate_path=self.plate_path, brew_path=self.brew_path,
+            group_by=self.group_by, zmad_ref=("ZS" + self.zmad_ref.upper()), include_grp=self.plate_grp_file)
 
-               {brew_cmd}
-               """.format(cd_cmd=cd_cmd, brew_cmd=brew_cmd)
+        self.command = 'matlab -nodesktop -nosplash -nojit -nodisplay {cd_cmd}; {brew_cmd}; quit;" < /dev/null'.format(
+            cd_cmd=cd_cmd, brew_cmd=brew_cmd)
 
-        with open(self.brew_cmd_file, "w") as f:
-            f.write(full_cmd + "\n")
-
-        self.command = "matlab -nodesktop -nosplash -nojit -nodisplay < {brew_cmd_file}".format(brew_cmd_file=self.brew_cmd_file)
-
-        logger.info("Command built : {}".format(full_cmd))
+        logger.info("Command built : {}".format(self.command))
 
     def _post_build_failure(self):
         for replicate in self.replicate_set_list:
