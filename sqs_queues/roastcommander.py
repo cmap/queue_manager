@@ -43,8 +43,7 @@ def main(args):
         this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
     try:
-        output = this.execute_command()
-        logger.info(output)
+        this.execute_command()
     except Exception as e:
         logger.exception(e)
 
