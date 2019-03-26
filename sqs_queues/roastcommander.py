@@ -42,7 +42,8 @@ def main(args):
         plate.parse_det_plate(args.det_plate)
         this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
-    this.execute_command()
+    output = this.execute_command()
+    logger.info(output)
 
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db

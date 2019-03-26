@@ -18,3 +18,4 @@ class CommanderTemplate(object):
         except subprocess.CalledProcessError as e:
             raise qmExceptions.FailureOccurredDuringProcessing(e)
 
+        return out
