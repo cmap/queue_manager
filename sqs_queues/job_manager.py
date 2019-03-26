@@ -112,7 +112,8 @@ class JobManager(object):
             logger.exception("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(db)
 
-        self.finish_job()
+        else:
+            self.finish_job()
 
     def flag_job(self, db):
         cursor = db.cursor()
