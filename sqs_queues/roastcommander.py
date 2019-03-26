@@ -77,20 +77,15 @@ class RoastCommander(CommanderTemplate):
                 logger.info("Roast already exists -- deprecating")
                 if not os.path.exists(os.path.join(self.roast_dir_path, "deprecated")):
                         os.mkdir(os.path.join(self.roast_dir_path, "deprecated"))
-                shutil.move(self.plate_roast_dir_path, os.path.join(self.roast_dir_path, "deprecated", self.replicate_set_name))
+                shutil.move(self.plate_roast_dir_path, os.path.join(self.roast_dir_path, "deprecated", self.plate))
             else:
                 logger.info("Roast already exists -- deleting")
                 shutil.rmtree(self.plate_roast_dir_path)
 
     def _build_command(self):
         cd_cmd = '"cd ' + os.path.join(self.espresso_path, 'roast')
-        roast_cmd = """roast('clean', true, ...
-                            'plate', '{}', ...
-                            'plate_path', '{}', ...
-                            'map_path', '{}', ...
-                            'raw_path', '{}', ...
-                            'parallel', true)""".format(self.plate, self.roast_dir_path,
-                                                        self.maps_path, self.lxb_dir_path)
+        roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true)""".format(
+            self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
         self.command = 'matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
 
         logger.info("Command built : {}".format(self.command))
