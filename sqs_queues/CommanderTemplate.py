@@ -13,9 +13,5 @@ class CommanderTemplate(object):
         return " ".join(["{}:{}".format(k, v) for (k, v) in self.__dict__.items()])
 
     def execute_command(self):
-        try:
-            out = os.system(self.command)
-        except Exception as e:
-            raise qmExceptions.FailureOccurredDuringProcessing(e)
+        os.system(self.command)
 
-        return out
