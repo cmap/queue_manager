@@ -53,7 +53,7 @@ def main(args):
     base_path = args.pod_dir if args.pod_dir else args.data_path
 
 
-    this = BrewCommander(cursor, base_path, args.espresso_path, replicate_set_list, args.zmad_rep, args.group_by, args.deprecate)
+    this = BrewCommander(cursor, base_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
     this.execute_command()
 
 
