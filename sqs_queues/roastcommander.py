@@ -37,11 +37,11 @@ def main(args):
 
     plate = lpo.get_by_det_plate(cursor, args.det_plate)
     if plate:
-        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+        this = RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
     else:
         plate = lpo.LimsPlateOrm()
         plate.parse_det_plate(args.det_plate)
-        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+        this = RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
     try:
         this.execute_command()
