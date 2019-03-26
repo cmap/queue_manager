@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import shutil
+import subprocess
 import sys
 
 import caldaia.utils.mysql_utils as mu
@@ -42,8 +43,11 @@ def main(args):
         plate.parse_det_plate(args.det_plate)
         this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
-    output = this.execute_command()
-    logger.info(output)
+    try:
+        output = this.execute_command()
+        logger.info(output)
+    except subprocess.CalledProcessError as e:
+        logger.exception(e)
 
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
