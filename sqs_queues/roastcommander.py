@@ -65,7 +65,7 @@ class RoastCommander(CommanderTemplate):
 
     def _build_paths(self):
         self.project_directory = os.path.join(self.base_path, self.project_id)
-        self.map_src_dir_path = os.path.join(self.base_path, 'map_src')
+        self.map_src_dir_path = os.path.join(self.project_directory, 'map_src')
         self.lxb_dir_path = os.path.join(self.project_directory, 'lxb', self.plate)
         self.roast_dir_path = os.path.join(self.project_directory, 'roast')
         self.plate_roast_dir_path = os.path.join(self.roast_dir_path, self.plate)

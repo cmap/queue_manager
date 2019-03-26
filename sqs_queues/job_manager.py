@@ -109,7 +109,7 @@ class JobManager(object):
             logger.info("Yeezy reported {} plate is not finished scanning".format(self.plate))
             return
         except Exception as e:
-            logger.warning("Exception {} raised for plate {}".format(e, self.plate))
+            logger.exception("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(db)
 
         self.finish_job()
