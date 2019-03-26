@@ -137,13 +137,14 @@ class BrewCommander(CommanderTemplate):
         for replicate in self.replicate_set_list:
             det_plate = replicate.lims_plate_orm.det_plate
             self.cursor.execute("update plate set brew_error=%s where det_plate=%s", (self.error, det_plate, ))
+            logger.info(self.cursor.statement)
 
     def _post_build_success(self):
         date = datetime.datetime.today()
         for replicate in self.replicate_set_list:
             det_plate = replicate.lims_plate_orm.det_plate
             self.cursor.execute("update plate set is_brewed=1, brew_date=%s where det_plate=%s", (date, det_plate))
-
+            logger.info(self.cursor.statement)
 
 
 if __name__ == '__main__':

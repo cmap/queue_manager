@@ -17,11 +17,13 @@ class CommanderTemplate(object):
     def execute_command(self, ):
         try:
             os.system(self.command)
-            self._post_build_success()
         except Exception as e:
-            self.error = e
+            self.error = str(e)
             self._post_build_failure()
             raise qmExceptions.FailureOccurredDuringProcessing(e)
+        else:
+            self._post_build_success()
+
 
     def _post_build_failure(self):
         pass

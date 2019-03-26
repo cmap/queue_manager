@@ -97,11 +97,12 @@ class RoastCommander(CommanderTemplate):
 
     def _post_build_failure(self):
         self.cursor.execute("update plate set roast_error%s where det_plate=%s", (self.error, self.plate,))
+        logger.info(self.cursor.statement)
 
     def _post_build_success(self):
         date = datetime.datetime.today()
         self.cursor.execute("update plate set is_roasted=1, roast_date=%s where det_plate=%s", (date, self.plate,))
-
+        logger.info(self.cursor.statement)
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
