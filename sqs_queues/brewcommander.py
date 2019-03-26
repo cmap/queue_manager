@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import logging
 import os
 import shutil
@@ -78,7 +79,7 @@ def make_job(args):
 class BrewCommander(CommanderTemplate):
     def __init__(self, cursor, base_path, espresso_path, replicate_set_list, zmad_ref, group_by, deprecate):
 
-        super(BrewCommander, self).__init__(base_path, espresso_path)
+        super(BrewCommander, self).__init__(cursor, base_path, espresso_path)
 
         self.replicate_set_list = replicate_set_list
 
@@ -146,8 +147,17 @@ class BrewCommander(CommanderTemplate):
         self.command = "matlab -nodesktop -nosplash -nojit -nodisplay < {brew_cmd_file}".format(brew_cmd_file=self.brew_cmd_file)
 
         logger.info("Command built : {}".format(full_cmd))
-    def _post_build(self):
-        pass
+
+    def _post_build_failure(self):
+        for replicate in self.replicate_set_list:
+            det_plate = replicate.lims_plate_orm.det_plate
+            self.cursor.execute("update plate set brew_error=%s where det_plate=%s", (self.error, det_plate, ))
+
+    def _post_build_success(self):
+        date = datetime.datetime.today()
+        for replicate in self.replicate_set_list:
+            det_plate = replicate.lims_plate_orm.det_plate
+            self.cursor.execute("update plate set is_brewed=1, brew_date=%s where det_plate=%s", (date, det_plate))
 
 
 

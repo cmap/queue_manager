@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import logging
 import os
 import shutil
@@ -53,12 +54,12 @@ def make_job(args):
 
     plate = lpo.get_by_machine_barcode(cursor, args.machine_barcode)
 
-    return RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+    return RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
 
 class RoastCommander(CommanderTemplate):
-    def __init__(self, base_path, espresso_path, det_plate, project_id, deprecate):
-        super(RoastCommander, self).__init__(base_path, espresso_path)
+    def __init__(self, cursor, base_path, espresso_path, det_plate, project_id, deprecate):
+        super(RoastCommander, self).__init__(cursor, base_path, espresso_path)
         self.plate = det_plate
         self.project_id = project_id
 
@@ -92,6 +93,14 @@ class RoastCommander(CommanderTemplate):
         self.command = 'matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
 
         logger.info("Command built : {}".format(self.command))
+
+
+    def _post_build_failure(self):
+        self.cursor.execute("update plate set roast_error%s where det_plate=%s", (self.error, self.plate,))
+
+    def _post_build_success(self):
+        date = datetime.datetime.today()
+        self.cursor.execute("update plate set is_roasted=1, roast_date=%s where det_plate=%s", (date, self.plate,))
 
 
 if __name__ == '__main__':
