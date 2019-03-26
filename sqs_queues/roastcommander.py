@@ -95,6 +95,6 @@ if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
     config_tools.add_config_file_settings_to_args(args)
 
-    setup_logger.setup(verbose=args.verbose, log_file=args.log_path)
+    setup_logger.setup(verbose=True)
 
     main(args)

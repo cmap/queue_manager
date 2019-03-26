@@ -14,7 +14,7 @@ class CommanderTemplate(object):
 
     def execute_command(self):
         try:
-            subprocess.run(self.command, check=True, shell=True)
+            subprocess.check_call(self.command, stderr=subprocess.STDOUT, shell=True)
         except subprocess.CalledProcessError as e:
             raise qmExceptions.FailureOccurredDuringProcessing(e)
 
