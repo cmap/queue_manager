@@ -91,7 +91,7 @@ class BrewCommander(CommanderTemplate):
 
 
         self._build_paths()
-        self.command = self._build_command()
+        self._build_command()
 
 
     def _build_paths(self):
