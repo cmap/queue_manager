@@ -87,23 +87,27 @@ class RoastCommander(CommanderTemplate):
                 shutil.rmtree(self.plate_roast_dir_path)
 
     def _build_command(self):
-        cd_cmd = '"cd ' + os.path.join(self.espresso_path, 'roast')
-        roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true)""".format(
+        roast_dir = os.path.join(self.espresso_path, 'roast')
+        roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true)".format(
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
 
-        self.command = 'matlab -batch' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
+        self.command = 'matlab -sd {} -nodisplay -r "{}"'.format(roast_dir, roast_cmd)
 
         logger.info("Command built : {}".format(self.command))
 
 
-    def _post_build_failure(self):
-        self.cursor.execute("update plate set roast_error%s where det_plate=%s", (self.error, self.plate,))
-        logger.info(self.cursor.statement)
+    def _post_build_failure(self, db, error):
+        cursor = db.cursor()
+        cursor.execute("update plate set roast_error%s where det_plate=%s", (error, self.plate))
+        logger.info(cursor.statement)
+        db.commit()
 
-    def _post_build_success(self):
+    def _post_build_success(self, db):
+        cursor = db.cursor()
         date = datetime.datetime.today()
-        self.cursor.execute("update plate set is_roasted=1, roast_date=%s where det_plate=%s", (date, self.plate,))
-        logger.info(self.cursor.statement)
+        cursor.execute("update plate set is_roasted=1, roast_date=%s where det_plate=%s", (date, self.plate))
+        logger.info(cursor.statement)
+        db.commit()
 
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])

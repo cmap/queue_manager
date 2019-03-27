@@ -109,10 +109,12 @@ class JobManager(object):
             logger.info("Yeezy reported {} plate is not finished scanning".format(self.plate))
             return
         except Exception as e:
+            if hasattr(self.job, "_post_build_failure"): self.job._post_build_failure(str(e))
             logger.exception("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(db)
 
         else:
+            if hasattr(self.job, "_post_build_success"): self.job._post_build_success()
             self.finish_job()
 
     def flag_job(self, db):
