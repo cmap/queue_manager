@@ -52,8 +52,7 @@ def main(args):
 
     base_path = args.pod_dir if args.pod_dir else args.data_path
 
-
-    this = BrewCommander(cursor, base_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
+    this = BrewCommander(base_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
     this.execute_command()
 
 
@@ -74,13 +73,13 @@ def make_job(args):
     cursor = db.cursor()
 
     replicate_set_list = rspo.get_replicate_set_plate_orms_in_rep_set_by_replicate_set_id(cursor, args.replicate_set_id)
-    return BrewCommander(cursor, args.data_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
+    return BrewCommander(args.data_path, args.espresso_path, replicate_set_list, args.zmad_ref, args.group_by, args.deprecate)
 
 
 class BrewCommander(CommanderTemplate):
-    def __init__(self, cursor, base_path, espresso_path, replicate_set_list, zmad_ref, group_by, deprecate):
+    def __init__(self, base_path, espresso_path, replicate_set_list, zmad_ref, group_by, deprecate):
 
-        super(BrewCommander, self).__init__(cursor, base_path, espresso_path)
+        super(BrewCommander, self).__init__(base_path, espresso_path)
 
         self.replicate_set_list = replicate_set_list
 
@@ -123,8 +122,6 @@ class BrewCommander(CommanderTemplate):
                     include_grp.write("\n".join(replicate.lims_plate_orm.det_plate) + "\n")
 
     def _build_command(self):
-
-
         brew_cmd = "brew('plate', '{plate}', 'plate_path', '{plate_path}','brew_path', '{brew_path}', 'group_by', '{group_by}','zmad_ref', '{zmad_ref}', 'filter_vehicle', 'false', 'clean', true, 'include','{include_grp}')".format(
             plate=self.plate_grp_file, plate_path=self.plate_path, brew_path=self.brew_path,
             group_by=self.group_by, zmad_ref=("ZS" + self.zmad_ref.upper()), include_grp=self.plate_grp_file)
@@ -135,19 +132,22 @@ class BrewCommander(CommanderTemplate):
 
         logger.info("Command built : {}".format(self.command))
 
-    def _post_build_failure(self, error):
+    def _post_build_failure(self, db, error):
+        cursor = db.cursor()
         for replicate in self.replicate_set_list:
             det_plate = replicate.lims_plate_orm.det_plate
-            self.cursor.execute("update plate set brew_error=%s where det_plate=%s", (error, det_plate))
-            logger.info(self.cursor.statement)
+            cursor.execute("update plate set brew_error=%s where det_plate=%s", (error, det_plate))
+            logger.info(cursor.statement)
+        db.commit()
 
-    def _post_build_success(self):
+    def _post_build_success(self, db):
+        cursor = db.cursor()
         date = datetime.datetime.today()
         for replicate in self.replicate_set_list:
             det_plate = replicate.lims_plate_orm.det_plate
-            self.cursor.execute("update plate set is_brewed=1, brew_date=%s where det_plate=%s", (date, det_plate))
-            logger.info(self.cursor.statement)
-
+            cursor.execute("update plate set is_brewed=1, brew_date=%s where det_plate=%s", (date, det_plate))
+            logger.info(cursor.statement)
+        db.commit()
 
 if __name__ == '__main__':
     # set up arguments

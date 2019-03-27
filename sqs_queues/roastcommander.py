@@ -37,11 +37,11 @@ def main(args):
 
     plate = lpo.get_by_det_plate(cursor, args.det_plate)
     if plate:
-        this = RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
     else:
         plate = lpo.LimsPlateOrm()
         plate.parse_det_plate(args.det_plate)
-        this = RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+        this = RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
     try:
         this.execute_command()
@@ -54,12 +54,12 @@ def make_job(args):
 
     plate = lpo.get_by_machine_barcode(cursor, args.machine_barcode)
 
-    return RoastCommander(cursor, args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
+    return RoastCommander(args.data_path, args.espresso_path, plate.det_plate, plate.project_code, args.deprecate)
 
 
 class RoastCommander(CommanderTemplate):
-    def __init__(self, cursor, base_path, espresso_path, det_plate, project_id, deprecate):
-        super(RoastCommander, self).__init__(cursor, base_path, espresso_path)
+    def __init__(self, base_path, espresso_path, det_plate, project_id, deprecate):
+        super(RoastCommander, self).__init__( base_path, espresso_path)
         self.plate = det_plate
         self.project_id = project_id
 
