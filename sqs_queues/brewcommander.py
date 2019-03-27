@@ -61,10 +61,13 @@ def get_replicates_from_grp(cursor, path_to_grp):
     replicates = []
     with open(path_to_grp, "r") as grp:
         for line in grp:
+            replicate = rspo.ReplicateSetPlateOrm()
             orm = lpo.get_by_det_plate(cursor, line.strip())
             if orm is None:
                 orm = lpo.LimsPlateOrm()
                 orm.parse_det_plate()
+                replicate.lims_plate_orm = orm
+                replicate.is_included_in_brew = 1
             replicates.append(orm)
     return replicates
 
