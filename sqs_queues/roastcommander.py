@@ -88,7 +88,7 @@ class RoastCommander(CommanderTemplate):
 
     def _build_command(self):
         roast_dir = os.path.join(self.espresso_path, 'roast')
-        roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true)".format(
+        roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true, 'use_jcsv', true)".format(
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
 
         self.command = 'matlab -sd {} -nodisplay -r "{}"'.format(roast_dir, roast_cmd)
