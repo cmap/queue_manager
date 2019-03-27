@@ -111,7 +111,7 @@ class Kim(si.ScanInfo):
         return True
 
     def _jcsv_at_destination(self):
-        return os.path.exists(os.path.join(self.destination_lxb_dir, "*.jcsv"))
+        return glob.glob(os.path.join(self.destination_lxb_dir, "*.jcsv")) > 0
 
     def make_jcsv_in_lxb_directory(self):
         filename = self.plate_search_name + ".jcsv"
@@ -163,6 +163,5 @@ class Kim(si.ScanInfo):
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
     config_tools.use_config_file_settings_to_override_defaults(args)
-
 
     main(args)
