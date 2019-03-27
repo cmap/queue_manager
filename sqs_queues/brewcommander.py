@@ -131,7 +131,7 @@ class BrewCommander(CommanderTemplate):
             #TODO: -nojit might be -nojvm
             #TODO https://www.mathworks.com/help/matlab/ref/matlabmacos.html
         # NB: -wait makes sure exit code is propagated
-        self.command = 'matlab -nodesktop -nosplash -nojit -nodisplay -r -wait {cd_cmd}; {brew_cmd}; quit;" < /dev/null'.format(
+        self.command = 'matlab -nodesktop -nosplash -nojit -nodisplay -wait -r {cd_cmd}; {brew_cmd}; quit;" < /dev/null'.format(
             cd_cmd=cd_cmd, brew_cmd=brew_cmd)
 
         logger.info("Command built : {}".format(self.command))

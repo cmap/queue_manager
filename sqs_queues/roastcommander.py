@@ -92,7 +92,7 @@ class RoastCommander(CommanderTemplate):
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
 
         # NB: -wait makes sure exit code is propagated
-        self.command = 'matlab -nodesktop -nosplash -r -wait ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
+        self.command = 'matlab -nodesktop -nosplash -wait -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
 
         logger.info("Command built : {}".format(self.command))
 
