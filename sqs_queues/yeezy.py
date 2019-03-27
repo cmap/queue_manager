@@ -17,6 +17,7 @@ import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.ScanInfo as si
 import sqs_queues.exceptions as qmExceptions
 
+setup_logger.setup(verbose=True)
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 

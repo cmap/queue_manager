@@ -22,6 +22,7 @@ import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.ScanInfo as si
 import sqs_queues.exceptions as qmExceptions
 
+setup_logger.setup(verbose=True)
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
 
@@ -163,6 +164,5 @@ if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
     config_tools.use_config_file_settings_to_override_defaults(args)
 
-    setup_logger.setup(verbose=True)
 
     main(args)
