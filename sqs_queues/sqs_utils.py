@@ -105,18 +105,3 @@ class Message(object):
         # NB: queue_config here is from ConfigParser.items(queue_name)
         self._remove_from_current_queue()
         send_message_to_sqs_queue(next_queue_config['queue_url'], self.machine_barcode, next_queue_config['tag'])
-
-'''
-
-300790891JA_C6
-300790891JA_C6
-
-
-300790878JA_C6
-300790878JA_C6
-
-'''
-
-
-# send_message_to_sqs_queue('https://sqs.us-east-1.amazonaws.com/207675869076/roast_commander.fifo', '300790236JA.L2', "RC" )
-send_message_to_sqs_queue('https://sqs.us-east-1.amazonaws.com/207675869076/kim.fifo','905593', 'KK')
