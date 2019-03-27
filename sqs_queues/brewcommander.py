@@ -110,7 +110,7 @@ class BrewCommander(CommanderTemplate):
             if self.do_deprecate:
                 if not os.path.exists(os.path.join(self.brew_path, "deprecated")):
                         os.mkdir(os.path.join(self.brew_path, "deprecated"))
-                shutil.move(self.replicate_brew_dir_path, os.path.join(self.brew_path, "deprecated", self.replicate_set_name))
+                shutil.move(self.replicate_brew_dir_path, os.path.join(self.brew_path, "deprecated"))
             else:
                 shutil.rmtree(self.replicate_brew_dir_path)
 

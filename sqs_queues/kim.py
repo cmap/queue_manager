@@ -78,7 +78,7 @@ class Kim(si.ScanInfo):
                 os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
 
             shutil.move(self.destination_lxb_dir,
-                        os.path.join(self.destination_project_dir, "lxb", "deprecated", os.path.basename(self.destination_lxb_dir)))
+                        os.path.join(self.destination_project_dir, "lxb", "deprecated"))
 
         os.mkdir(self.destination_lxb_dir)
 

@@ -81,7 +81,7 @@ class RoastCommander(CommanderTemplate):
                 logger.info("Roast already exists -- deprecating")
                 if not os.path.exists(os.path.join(self.roast_dir_path, "deprecated")):
                         os.mkdir(os.path.join(self.roast_dir_path, "deprecated"))
-                shutil.move(self.plate_roast_dir_path, os.path.join(self.roast_dir_path, "deprecated", self.plate))
+                shutil.move(self.plate_roast_dir_path, os.path.join(self.roast_dir_path, "deprecated"))
             else:
                 logger.info("Roast already exists -- deleting")
                 shutil.rmtree(self.plate_roast_dir_path)
