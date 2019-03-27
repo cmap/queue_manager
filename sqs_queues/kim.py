@@ -155,6 +155,9 @@ class Kim(si.ScanInfo):
         self.check_lxb_destination()
         self.copy_lxbs_to_project_directory()
         self.make_jcsv_in_lxb_directory()
+
+    #NB: _ holds passed in DB object, which isn't needed as ScanInfo init requires DB
+    def _post_build_success(self, _):
         if not self.is_dev:
             self.make_lims_database_updates()
             rpf.rename_files(self.lims_plate_orm.det_plate, os.path.join(self.destination_project_dir, 'lxb'))
