@@ -128,7 +128,10 @@ class BrewCommander(CommanderTemplate):
             plate=self.plate_grp_file, plate_path=self.plate_path, brew_path=self.brew_path,
             group_by=self.group_by, zmad_ref=("ZS" + self.zmad_ref.upper()), include_grp=self.plate_grp_file)
 
-        self.command = 'matlab -nodesktop -nosplash -nojit -nodisplay -r {cd_cmd}; {brew_cmd}; quit;" < /dev/null'.format(
+            #TODO: -nojit might be -nojvm
+            #TODO https://www.mathworks.com/help/matlab/ref/matlabmacos.html
+        # NB: -wait makes sure exit code is propagated
+        self.command = 'matlab -nodesktop -nosplash -nojit -nodisplay -r -wait {cd_cmd}; {brew_cmd}; quit;" < /dev/null'.format(
             cd_cmd=cd_cmd, brew_cmd=brew_cmd)
 
         logger.info("Command built : {}".format(self.command))

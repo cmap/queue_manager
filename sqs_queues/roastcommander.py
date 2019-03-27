@@ -90,7 +90,9 @@ class RoastCommander(CommanderTemplate):
         cd_cmd = '"cd ' + os.path.join(self.espresso_path, 'roast')
         roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true)""".format(
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
-        self.command = 'matlab -nodesktop -nosplash -r ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
+
+        # NB: -wait makes sure exit code is propagated
+        self.command = 'matlab -nodesktop -nosplash -r -wait ' + cd_cmd + '; ' + roast_cmd + '; quit" < /dev/null'
 
         logger.info("Command built : {}".format(self.command))
 
