@@ -14,6 +14,7 @@ import sqs_queues.exceptions as qmExceptions
 
 from sqs_queues.CommanderTemplate import CommanderTemplate
 
+setup_logger.setup(verbose=True)
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -113,6 +114,5 @@ if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
     config_tools.add_config_file_settings_to_args(args)
 
-    setup_logger.setup(verbose=True)
 
     main(args)

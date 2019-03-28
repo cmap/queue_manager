@@ -16,6 +16,7 @@ import sqs_queues.exceptions as qmExceptions
 
 from sqs_queues.CommanderTemplate import CommanderTemplate
 
+setup_logger.setup(verbose=True)
 
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
 
@@ -125,6 +126,7 @@ class BrewCommander(CommanderTemplate):
                     include_grp.write("\n".join(replicate.lims_plate_orm.det_plate) + "\n")
 
     def _build_command(self):
+        self._write_plate_grp()
         brew_cmd = "brew('plate', '{plate}', 'plate_path', '{plate_path}','brew_path', '{brew_path}', 'group_by', '{group_by}','zmad_ref', '{zmad_ref}', 'filter_vehicle', 'false', 'clean', true, 'include','{include_grp}')".format(
             plate=self.plate_grp_file, plate_path=self.plate_path, brew_path=self.brew_path,
             group_by=self.group_by, zmad_ref=("ZS" + self.zmad_ref.upper()), include_grp=self.plate_grp_file)
@@ -155,7 +157,6 @@ class BrewCommander(CommanderTemplate):
 if __name__ == '__main__':
     # set up arguments
     args = build_parser().parse_args(sys.argv[1:])
-    setup_logger.setup(verbose=True)
 
     logger.debug("args:  {}".format(args))
 
