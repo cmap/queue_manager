@@ -21,6 +21,7 @@ import pestle.data_ninja.lims.rename_plate_files as rpf
 import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.ScanInfo as si
 import sqs_queues.exceptions as qmExceptions
+import sqs_queues.utils as qmUtils
 
 setup_logger.setup(verbose=True)
 logger = logging.getLogger(setup_logger.LOGGER_NAME)
@@ -74,18 +75,8 @@ class Kim(si.ScanInfo):
         # IF DESTINATION DIR EXISTS AND CONTAINS FILES, DEPRECATE
         if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
             logger.info("Found existing directory for plate -- handling")
-            deprecated_directory = os.path.join(self.destination_project_dir, "lxb", "deprecated")
-
-            if not os.path.exists(deprecated_directory):
-                os.mkdir(deprecated_directory)
-
-            deprecated_location = os.path.join(deprecated_directory, os.path.basename(self.destination_lxb_dir))
-            if os.path.exists(deprecated_location):
-                logger.info("Found existing deprecated directory for plate -- deleting")
-                shutil.rmtree(deprecated_location)
-
-            logger.info("Deprecating existing directory for plate")
-            shutil.move(self.destination_lxb_dir, deprecated_directory)
+            lxb_directory = os.path.join(self.destination_project_dir, "lxb")
+            qmUtils.deprecate_directory(lxb_directory, self.destination_lxb_dir)
 
         os.mkdir(self.destination_lxb_dir)
 

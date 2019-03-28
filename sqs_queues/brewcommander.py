@@ -13,6 +13,8 @@ import caldaia.utils.orm.replicate_set_plate_orm as rspo
 
 import broadinstitute.queue_manager.setup_logger as setup_logger
 import sqs_queues.exceptions as qmExceptions
+import sqs_queues.utils as qmUtils
+
 
 from sqs_queues.CommanderTemplate import CommanderTemplate
 
@@ -112,10 +114,10 @@ class BrewCommander(CommanderTemplate):
     def _check_for_preexisting_brew(self):
         if os.path.exists(self.replicate_brew_dir_path):
             if self.do_deprecate:
-                if not os.path.exists(os.path.join(self.brew_path, "deprecated")):
-                        os.mkdir(os.path.join(self.brew_path, "deprecated"))
-                shutil.move(self.replicate_brew_dir_path, os.path.join(self.brew_path, "deprecated"))
+                logger.info("Brew already exists -- deprecating")
+                qmUtils.deprecate_directory(self.brew_path, self.replicate_brew_dir_path)
             else:
+                logger.info("Brew already exists -- deleting")
                 shutil.rmtree(self.replicate_brew_dir_path)
 
     def _write_plate_grp(self):
