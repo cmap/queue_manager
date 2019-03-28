@@ -73,12 +73,19 @@ class Kim(si.ScanInfo):
     def check_lxb_destination(self):
         # IF DESTINATION DIR EXISTS AND CONTAINS FILES, DEPRECATE
         if self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0:
-            logger.info("Found existing directory for plate -- deprecating")
-            if not os.path.exists(os.path.join(self.destination_project_dir, "lxb", "deprecated")):
-                os.mkdir(os.path.join(self.destination_project_dir,"lxb", "deprecated"))
+            logger.info("Found existing directory for plate -- handling")
+            deprecated_directory = os.path.join(self.destination_project_dir, "lxb", "deprecated")
 
-            shutil.move(self.destination_lxb_dir,
-                        os.path.join(self.destination_project_dir, "lxb", "deprecated"))
+            if not os.path.exists(deprecated_directory):
+                os.mkdir(deprecated_directory)
+
+            deprecated_location = os.path.join(deprecated_directory, os.path.basename(self.destination_lxb_dir))
+            if os.path.exists(deprecated_location):
+                logger.info("Found existing deprecated directory for plate -- deleting")
+                shutil.rmtree(deprecated_location)
+
+            logger.info("Deprecating existing directory for plate")
+            shutil.move(self.destination_lxb_dir, deprecated_directory)
 
         os.mkdir(self.destination_lxb_dir)
 
