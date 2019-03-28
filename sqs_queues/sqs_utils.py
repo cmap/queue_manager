@@ -42,7 +42,7 @@ def receive_many_messages_from_sqs_queue(queue_url, atmost):
 
     response = SQS.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=atmost)
 
-    if response["Messages"]:
+    if "Messages" in response:
         status = response['ResponseMetadata']['HTTPStatusCode']
         print "{}: Received {} messages from {} queue".format(status, len(response['Messages']), queue_url.rsplit("/",1)[1])
 
@@ -61,7 +61,7 @@ def receive_message_from_sqs_queue(queue_url):
 
     response = SQS.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
 
-    if response["Messages"]:
+    if "Messages" in response:
         m = Message(response['Messages'][0], queue_url)
         return m
     print "No messages to receive in {} queue".format(queue_url.rsplit("/", 1)[1])
