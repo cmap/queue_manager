@@ -123,7 +123,7 @@ class BrewCommander(CommanderTemplate):
             # NB: UNIQUE CONSTRAINT ON MACHINE_BARCODE-REP_SET_ID PAIR
             for replicate in self.replicate_set_list:
                 if replicate.is_included_in_brew == 1:
-                    include_grp.write("\n".join(replicate.lims_plate_orm.det_plate) + "\n")
+                    include_grp.write(replicate.lims_plate_orm.det_plate + "\n")
 
     def _build_command(self):
         self._write_plate_grp()
