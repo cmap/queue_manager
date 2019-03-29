@@ -63,6 +63,16 @@ class Kim(si.ScanInfo):
             msg = "The following plate : {} is not viable for processing".format(self.plate_search_name)
             raise qmExceptions.PlateCannotBeProcessed(msg)
 
+    def build_plate_values(self):
+        # SET FIELD IN ORM OBJECT
+        rna_plate_fields = [self.lims_plate_orm.pert_plate, self.lims_plate_orm.cell_id,
+                            self.lims_plate_orm.pert_time,
+                            self.lims_plate_orm.replicate]
+        self.lims_plate_orm.rna_plate = "_".join(rna_plate_fields)
+        self.lims_plate_orm.det_plate = self.lims_plate_orm.rna_plate + "_" + self.lims_plate_orm.bead_set
+        self.lims_plate_orm.scan_det_plate = self.lims_plate_orm.original_barcode + "_" + self.lims_plate_orm.bead_set
+        return self.lims_plate_orm
+
     def set_destination_dirs(self):
         self.destination_project_dir = os.path.join(self.base_data_path, 'DEV') if self.is_dev else os.path.join(self.base_data_path, self.lims_plate_orm.project_code)
         if self.is_dev:
@@ -110,7 +120,7 @@ class Kim(si.ScanInfo):
             if i > 0 and i % 10 == 0:
                 logger.debug("copying progress - working on {} out of {}".format(i, num_src_lxb_files))
 
-        return True
+        return self._num_lxbs_at_destination() == num_src_lxb_files
 
     def _jcsv_at_destination(self):
         return len(glob.glob(os.path.join(self.destination_lxb_dir, "*.jcsv"))) > 0
@@ -128,26 +138,8 @@ class Kim(si.ScanInfo):
         except Exception as e:
             logger.exception("failed to make_csv.  stacktrace:  ")
             raise qmExceptions.FailureOccuredDuringProcessing(e)
-        #TODO: should we check retval?
-        return outfile
 
-    def build_plate_values(self):
-        # SET FIELD IN ORM OBJECT
-        rna_plate_fields = [self.lims_plate_orm.pert_plate, self.lims_plate_orm.cell_id,
-                            self.lims_plate_orm.pert_time,
-                            self.lims_plate_orm.replicate]
-        self.lims_plate_orm.rna_plate = "_".join(rna_plate_fields)
-        self.lims_plate_orm.det_plate = self.lims_plate_orm.rna_plate + "_" + self.lims_plate_orm.bead_set
-        self.lims_plate_orm.scan_det_plate = self.lims_plate_orm.original_barcode + "_" + self.lims_plate_orm.bead_set
-        return self.lims_plate_orm
-
-    def make_lims_database_updates(self):
-        cursor = self.db.cursor()
-        # USE ORM OBJECT TO UPDATE DATABASE
-        self.lims_plate_orm.update_in_db(cursor)
-        if cursor.rowcount != 1:
-            raise qmExceptions.FailureOccurredDuringProcessing("Statement: {}  Failed to update LIMS database for plate {}".format(cursor.statement, self.lims_plate_orm.det_plate))
-        self.db.commit()
+        return retval == 0
 
     def execute_command(self):
         self.check_for_dev()
@@ -155,8 +147,20 @@ class Kim(si.ScanInfo):
         # SET UP PATHS AND DIRECTORY STRUCTURE IF D.N.E.
         self.setup_project_directory_structure_if_needed()
         self.check_lxb_destination()
-        self.copy_lxbs_to_project_directory()
-        self.make_jcsv_in_lxb_directory()
+        lxbs_copied = self.copy_lxbs_to_project_directory()
+        jcsv_made = self.make_jcsv_in_lxb_directory()
+        if not lxbs_copied or not jcsv_made:
+            raise qmExceptions.FailureOccurredDuringProcessing("lxbs copied : {} | jcsv made : {}".format(lxbs_copied, jcsv_made))
+
+    def make_lims_database_updates(self):
+        cursor = self.db.cursor()
+        # USE ORM OBJECT TO UPDATE DATABASE
+        self.lims_plate_orm.update_in_db(cursor)
+        if cursor.rowcount != 1:
+            raise qmExceptions.FailureOccurredDuringProcessing(
+                "Statement: {}  Failed to update LIMS database for plate {}".format(cursor.statement,
+                                                                                    self.lims_plate_orm.det_plate))
+        self.db.commit()
 
     #NB: _ holds passed in DB object, which isn't needed as ScanInfo init requires DB
     def _post_build_success(self, _):
