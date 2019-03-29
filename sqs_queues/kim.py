@@ -95,9 +95,12 @@ class Kim(si.ScanInfo):
 
     def copy_lxbs_to_project_directory(self):
         # MOVE ALL LXBs FROM ARCHIVE LOCATION
+        logger.info("Beginning copy of lxbs from {}".format(self.lxb_path))
         src_lxb_file_list = glob.glob(os.path.join(self.lxb_path, '*.lxb'))
         src_lxb_file_list.sort()
         num_src_lxb_files = len(src_lxb_file_list)
+        if num_src_lxb_files == 0:
+            raise qmExceptions.FailureOccurredDuringProcessing("No LXBs found at given lxb path: {}".format(self.lxb_path))
 
         for (i, src_lxb_file) in enumerate(src_lxb_file_list):
             dest_lxb_file = os.path.join(self.destination_lxb_dir, os.path.basename(src_lxb_file))
