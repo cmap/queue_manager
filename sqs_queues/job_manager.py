@@ -87,7 +87,6 @@ class JobManager(object):
             raise qmExceptions.UnassociatedPlateMadeItPastKim("Plate {} found in {} queue has no entry in LIMS database D:<".format(self.message.machine_barcode, self.queue))
 
     def _make_job(self):
-        # self.update_job_table(cursor)
         queue_job = importlib.import_module(self.queue_config["job"].lower())
         job_args_parser = getattr(queue_job, "build_parser")
         job_args = job_args_parser().parse_args(['--config_filepath', self.config_filepath,
@@ -109,8 +108,8 @@ class JobManager(object):
             logger.info("Yeezy reported {} plate is not finished scanning".format(self.plate))
             return
         except Exception as e:
+            logger.exception(e)
             if hasattr(self.job, "_post_build_failure"): self.job._post_build_failure(db, str(e))
-            logger.exception("Exception {} raised for plate {}".format(e, self.plate))
             self.flag_job(db)
 
         else:
@@ -126,9 +125,15 @@ class JobManager(object):
 
     def finish_job(self):
         next_queue_index = self.queue_workflow_info.index(self.queue) + 1
-        self.queue = self.queue_workflow_info[next_queue_index]
-        self._get_queue_config()
-        self.message.pass_to_next_queue(self.queue_config)
+        try:
+            self.queue = self.queue_workflow_info[next_queue_index]
+        except IndexError as e:
+            if self.queue == "brew":
+                #consume message without passing
+                self.message._remove_from_current_queue()
+        else:
+            self._get_queue_config()
+            self.message.pass_to_next_queue(self.queue_config)
 
 
 

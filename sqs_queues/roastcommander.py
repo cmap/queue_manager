@@ -50,6 +50,7 @@ def main(args):
     except Exception as e:
         logger.exception(e)
 
+
 def make_job(args):
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
@@ -91,14 +92,14 @@ class RoastCommander(CommanderTemplate):
         roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true, 'use_jcsv', true)".format(
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
 
-        self.command = 'matlab -sd {} -nodisplay -r "{}"'.format(roast_dir, roast_cmd)
+        self.command = 'matlab -sd {} -nodisplay -r "try, {}, catch, exit(1), end, exit(0)"'.format(roast_dir, roast_cmd)
 
         logger.info("Command built : {}".format(self.command))
 
 
     def _post_build_failure(self, db, error):
         cursor = db.cursor()
-        cursor.execute("update plate set roast_error%s where det_plate=%s", (error, self.plate))
+        cursor.execute("update plate set roast_error=%s where det_plate=%s", (error, self.plate))
         logger.info(cursor.statement)
         db.commit()
 
