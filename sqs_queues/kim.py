@@ -83,13 +83,12 @@ class Kim(si.ScanInfo):
 
     def check_lxb_destination(self):
         # IF DESTINATION DIR EXISTS AND CONTAINS FILES, DEPRECATE
-
-        if os.path.exists(self.destination_lxb_dir) and (self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0):
+        if (self._jcsv_at_destination() or self._num_lxbs_at_destination() > 0):
             logger.info("Found existing directory for plate -- handling")
             lxb_directory = os.path.join(self.destination_project_dir, "lxb")
             qmUtils.deprecate_directory(lxb_directory, self.destination_lxb_dir)
-
-        os.mkdir(self.destination_lxb_dir)
+        if not os.path.exists(self.destination_lxb_dir):
+            os.mkdir(self.destination_lxb_dir)
 
     def setup_project_directory_structure_if_needed(self):
         # CHECK IF PROJECT DIRECTORY EXISTS AND SET UP DIRECTORY STRUCTURE IF NOT
