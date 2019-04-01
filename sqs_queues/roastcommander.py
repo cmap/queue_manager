@@ -34,6 +34,7 @@ def build_parser():
     return parser
 
 def main(args):
+    # NB: calling from main does not perform post-build database updates
     db = mu.DB(config_filepath=args.config_filepath, config_section=args.config_section).db
     cursor = db.cursor()
 
@@ -77,6 +78,7 @@ class RoastCommander(CommanderTemplate):
         self.lxb_dir_path = os.path.join(self.project_directory, 'lxb')
         self.roast_dir_path = os.path.join(self.project_directory, 'roast')
         self.plate_roast_dir_path = os.path.join(self.roast_dir_path, self.plate)
+        self._check_for_preexisting_roast()
 
     def _check_for_preexisting_roast(self):
         if os.path.exists(self.plate_roast_dir_path):
@@ -89,9 +91,12 @@ class RoastCommander(CommanderTemplate):
 
     def _build_command(self):
         roast_dir = os.path.join(self.espresso_path, 'roast')
+
+        ## TODO ON CHANGE OF ESPRESSO TO RUN FROM SRC -- change map_path arg to map_src_path and update value accordingly
         roast_cmd = "roast('clean', true, 'plate', '{}','plate_path', '{}', 'map_path', '{}','raw_path', '{}', 'parallel', true, 'use_jcsv', true)".format(
             self.plate, self.roast_dir_path, self.maps_path, self.lxb_dir_path)
 
+        ## TODO error handling here is an issue and HIGHLY important, need to better catch matlab errors either here or in CommanderTemplate
         self.command = 'matlab -sd {} -nodisplay -r "try, {}, catch, exit(1), end, exit(0)"'.format(roast_dir, roast_cmd)
 
         logger.info("Command built : {}".format(self.command))
@@ -103,6 +108,7 @@ class RoastCommander(CommanderTemplate):
         logger.info(cursor.statement)
         db.commit()
 
+    # TODO: add call to qc_summarfy_roast
     def _post_build_success(self, db):
         cursor = db.cursor()
         date = datetime.datetime.today()
@@ -113,6 +119,4 @@ class RoastCommander(CommanderTemplate):
 if __name__ == '__main__':
     args = build_parser().parse_args(sys.argv[1:])
     config_tools.add_config_file_settings_to_args(args)
-
-
     main(args)
